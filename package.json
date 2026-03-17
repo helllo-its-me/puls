@@ -1,0 +1,12 @@
+{
+  "name": "health-app-monorepo",
+  "private": true,
+  "packageManager": "pnpm@10.6.5",
+  "scripts": {
+    "dev": "pnpm -r --parallel --filter @health/api --filter @health/mobile dev",
+    "dev:mobile": "pnpm --filter @health/mobile dev",
+    "dev:api": "pnpm --filter @health/api dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck"
+  }
+}

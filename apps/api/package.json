@@ -1,0 +1,24 @@
+{
+  "name": "@health/api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@health/shared": "workspace:*",
+    "@hono/node-server": "^1.19.3",
+    "hono": "^4.8.3",
+    "pino": "^9.9.0",
+    "pino-pretty": "^13.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "tsx": "^4.20.5",
+    "typescript": "~5.9.2"
+  }
+}
