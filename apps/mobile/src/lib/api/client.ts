@@ -1,17 +1,18 @@
+import { z } from 'zod';
+
 import { env } from '@/config/env';
 
-type ApiResponse<TData> = {
-  data: TData;
-};
-
-export async function apiGet<TData>(path: string): Promise<ApiResponse<TData>> {
+export async function apiGet<TSchema extends z.ZodType>(
+  path: string,
+  schema: TSchema
+): Promise<z.infer<TSchema>> {
   const response = await fetch(`${env.apiBaseUrl}${path}`);
 
   if (!response.ok) {
     throw new Error(`Request failed with status ${response.status}`);
   }
 
-  const data: TData = await response.json();
+  const data: unknown = await response.json();
 
-  return { data };
+  return schema.parse(data);
 }

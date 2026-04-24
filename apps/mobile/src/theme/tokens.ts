@@ -1,11 +1,19 @@
 export const colors = {
-  background: '#F4F7FB',
-  surface: '#FFFFFF',
-  textPrimary: '#1F2937',
-  textSecondary: '#4B5563',
-  border: '#D1D5DB',
-  accent: '#2563EB',
-  accentPressed: '#1D4ED8'
+  background: '#FBFAF5',
+  backgroundTint: '#EDF5C9',
+  surface: '#FFFDF8',
+  surfaceMuted: '#F3F0E7',
+  border: '#E9E3D6',
+  textPrimary: '#111111',
+  textSecondary: '#6A695F',
+  textTertiary: '#9A998F',
+  accent: '#111111',
+  accentPressed: '#2A2A2A',
+  mint: '#E5F6B9',
+  sky: '#CDE7FF',
+  lavender: '#E4DFFF',
+  pink: '#F1CFE4',
+  success: '#A7E3B0'
 } as const;
 
 export const spacing = {
@@ -13,17 +21,23 @@ export const spacing = {
   sm: 8,
   md: 12,
   lg: 16,
-  xl: 24
+  xl: 24,
+  xxl: 32
 } as const;
 
 export const radius = {
   sm: 8,
   md: 12,
-  lg: 16
+  lg: 16,
+  xl: 28,
+  pill: 999
 } as const;
 
 export const typography = {
-  body: 16,
-  title: 28,
-  button: 16
+  caption: 14,
+  body: 17,
+  sectionTitle: 22,
+  title: 32,
+  hero: 48,
+  button: 18
 } as const;

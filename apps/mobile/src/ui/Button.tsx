@@ -1,37 +1,44 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 
-import { colors, radius, spacing, typography } from '@/theme/tokens';
+import { colors, radius, spacing } from '@/theme/tokens';
+import { AppText } from '@/ui/AppText';
 
 type ButtonProps = {
   label: string;
   onPress: () => void;
+  variant?: 'primary' | 'secondary';
 };
 
-export function Button({ label, onPress }: ButtonProps) {
+export function Button({ label, onPress, variant = 'primary' }: ButtonProps) {
   return (
     <Pressable
-      style={({ pressed }) => [styles.button, pressed ? styles.buttonPressed : undefined]}
+      style={({ pressed }) => [
+        styles.button,
+        variant === 'secondary' ? styles.buttonSecondary : styles.buttonPrimary,
+        pressed ? styles.buttonPressed : undefined
+      ]}
       onPress={onPress}
     >
-      <Text style={styles.label}>{label}</Text>
+      <AppText variant="button">{label}</AppText>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: colors.accent,
+    minHeight: 60,
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radius.md,
+    paddingHorizontal: spacing.xl,
+    borderRadius: radius.pill,
     alignItems: 'center'
+  },
+  buttonPrimary: {
+    backgroundColor: colors.accent
+  },
+  buttonSecondary: {
+    backgroundColor: colors.surfaceMuted
   },
   buttonPressed: {
     backgroundColor: colors.accentPressed
-  },
-  label: {
-    color: colors.surface,
-    fontSize: typography.button,
-    fontWeight: '600'
   }
 });
