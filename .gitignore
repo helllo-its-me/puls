@@ -6,6 +6,12 @@ build/
 .expo/
 .turbo/
 coverage/
+playwright-report/
+test-results/
+.env
+.env.*
+!.env.example
+!.env.sample
 
 *.log
 .DS_Store

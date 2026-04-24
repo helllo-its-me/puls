@@ -1,7 +1,7 @@
 import { PropsWithChildren } from 'react';
 import { SafeAreaView, StyleSheet, View } from 'react-native';
 
-import { colors, spacing } from '@/theme/tokens';
+import { colors } from '@/theme/tokens';
 
 export function Screen({ children }: PropsWithChildren) {
   return (
@@ -17,8 +17,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background
   },
   content: {
-    flex: 1,
-    padding: spacing.lg,
-    gap: spacing.md
+    flex: 1
   }
 });
