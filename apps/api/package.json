@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@health/db": "workspace:*",
     "@health/shared": "workspace:*",
     "@hono/node-server": "^1.19.3",
     "hono": "^4.8.3",

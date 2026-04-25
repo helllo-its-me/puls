@@ -1,17 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
-import { getProfile } from '../../apps/api/src/features/profile/profile.service.js';
 import {
   getProfileActionViews,
   getProfileFocusTones,
   getProfileHeroStats
 } from '../../apps/mobile/src/features/profile/model/profile-view.js';
+import { profileResponseFixture } from '../fixtures/profile.js';
 
 describe('profile view model', () => {
   it('builds hero stats from the profile response', () => {
-    const profile = getProfile();
-
-    expect(getProfileHeroStats(profile)).toEqual([
+    expect(getProfileHeroStats(profileResponseFixture)).toEqual([
       {
         id: 'streak',
         label: 'Streak',
@@ -31,9 +29,7 @@ describe('profile view model', () => {
   });
 
   it('assigns stable tones to focus areas and actions', () => {
-    const profile = getProfile();
-
-    expect(getProfileFocusTones(profile)).toEqual([
+    expect(getProfileFocusTones(profileResponseFixture)).toEqual([
       {
         id: 'sleep',
         tone: 'mint'
@@ -48,7 +44,7 @@ describe('profile view model', () => {
       }
     ]);
 
-    expect(getProfileActionViews(profile).map((action) => action.tone)).toEqual([
+    expect(getProfileActionViews(profileResponseFixture).map((action) => action.tone)).toEqual([
       'mint',
       'sky',
       'lavender'

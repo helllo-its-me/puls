@@ -10,7 +10,8 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: 'PORT=3100 pnpm --filter @health/api dev',
+      command:
+        'pnpm db:up && until docker compose exec -T postgres pg_isready -U postgres -d health_app; do sleep 1; done && pnpm db:push && pnpm db:seed && PORT=3100 pnpm --filter @health/api dev',
       url: 'http://127.0.0.1:3100/api/v1/health',
       reuseExistingServer: false,
       timeout: 120_000

@@ -3,8 +3,14 @@ import { Hono } from 'hono';
 
 import { getProfile } from '../features/profile/profile.service.js';
 
-export const profileRoute = new Hono().get('/profile', (context) => {
-  const profile = profileResponseSchema.parse(getProfile());
+export const profileRoute = new Hono().get('/profile', async (context) => {
+  const profile = await getProfile();
 
-  return context.json(profile);
+  if (!profile) {
+    return context.json({ message: 'Profile not found' }, 404);
+  }
+
+  const parsedProfile = profileResponseSchema.parse(profile);
+
+  return context.json(parsedProfile);
 });
