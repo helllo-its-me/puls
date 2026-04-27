@@ -1,7 +1,17 @@
 import { integer, pgTable, text, timestamp, varchar } from 'drizzle-orm/pg-core';
 
+export const usersTable = pgTable('users', {
+  id: text('id').primaryKey(),
+  email: varchar('email', { length: 255 }).notNull().unique(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull()
+});
+
 export const profilesTable = pgTable('profiles', {
   id: text('id').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .unique()
+    .references(() => usersTable.id, { onDelete: 'cascade' }),
   firstName: varchar('first_name', { length: 255 }).notNull(),
   lastName: varchar('last_name', { length: 255 }).notNull(),
   membershipTier: varchar('membership_tier', { length: 255 }).notNull(),

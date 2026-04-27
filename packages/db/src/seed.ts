@@ -4,12 +4,29 @@ import {
   profileFocusAreasTable,
   profileHighlightsTable,
   profileQuickActionsTable,
-  profilesTable
+  profilesTable,
+  usersTable
 } from './index.js';
 
+const seededUserId = 'user-primary';
+const seededProfileId = 'profile-primary';
+
 async function seedProfile() {
+  await db.insert(usersTable).values({
+    id: seededUserId,
+    email: 'tanya@example.com',
+    createdAt: new Date('2026-04-01T08:30:00.000Z')
+  }).onConflictDoUpdate({
+    target: usersTable.id,
+    set: {
+      email: 'tanya@example.com',
+      createdAt: new Date('2026-04-01T08:30:00.000Z')
+    }
+  });
+
   await db.insert(profilesTable).values({
-    id: 'profile-primary',
+    id: seededProfileId,
+    userId: seededUserId,
     firstName: 'Tanya',
     lastName: 'Vorobyova',
     membershipTier: 'Premium care',
@@ -24,6 +41,7 @@ async function seedProfile() {
   }).onConflictDoUpdate({
     target: profilesTable.id,
     set: {
+      userId: seededUserId,
       firstName: 'Tanya',
       lastName: 'Vorobyova',
       membershipTier: 'Premium care',
@@ -45,21 +63,21 @@ async function seedProfile() {
   await db.insert(profileFocusAreasTable).values([
     {
       id: 'sleep',
-      profileId: 'profile-primary',
+      profileId: seededProfileId,
       label: 'Sleep rhythm',
       progressLabel: '7 nights tracked',
       position: 0
     },
     {
       id: 'movement',
-      profileId: 'profile-primary',
+      profileId: seededProfileId,
       label: 'Gentle mobility',
       progressLabel: '3 sessions completed',
       position: 1
     },
     {
       id: 'stress',
-      profileId: 'profile-primary',
+      profileId: seededProfileId,
       label: 'Stress relief',
       progressLabel: 'Breathing streak: 5 days',
       position: 2
@@ -69,14 +87,14 @@ async function seedProfile() {
   await db.insert(profileHighlightsTable).values([
     {
       id: 'routine',
-      profileId: 'profile-primary',
+      profileId: seededProfileId,
       title: 'Your routine is stabilizing',
       description: 'Evening check-ins became more consistent and recovery mornings feel lighter.',
       position: 0
     },
     {
       id: 'coach',
-      profileId: 'profile-primary',
+      profileId: seededProfileId,
       title: 'Coach recommendation',
       description: 'Keep the bedtime window fixed for the next 4 days to reinforce the new rhythm.',
       position: 1
@@ -86,7 +104,7 @@ async function seedProfile() {
   await db.insert(profileQuickActionsTable).values([
     {
       id: 'plan',
-      profileId: 'profile-primary',
+      profileId: seededProfileId,
       label: 'Open my plan',
       description: 'See the full schedule, habits and progress checkpoints.',
       accent: 'mint',
@@ -94,7 +112,7 @@ async function seedProfile() {
     },
     {
       id: 'coach',
-      profileId: 'profile-primary',
+      profileId: seededProfileId,
       label: 'Message coach',
       description: 'Send a note, ask a question or share how today went.',
       accent: 'sky',
@@ -102,7 +120,7 @@ async function seedProfile() {
     },
     {
       id: 'edit',
-      profileId: 'profile-primary',
+      profileId: seededProfileId,
       label: 'Adjust preferences',
       description: 'Update profile details and tune your care experience.',
       accent: 'lavender',

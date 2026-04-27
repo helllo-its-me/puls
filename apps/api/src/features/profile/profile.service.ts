@@ -1,7 +1,7 @@
 import type { ProfileResponse } from '@health/shared';
 
 import type { ProfileRecord } from './profile.repository.js';
-import { getProfileRecord } from './profile.repository.js';
+import { getProfileRecordByUserId } from './profile.repository.js';
 
 function getAccent(
   accent: string
@@ -71,8 +71,8 @@ export function mapProfileRecordToResponse(profileRecord: ProfileRecord): Profil
   };
 }
 
-export async function getProfile(): Promise<ProfileResponse | null> {
-  const profileRecord = await getProfileRecord();
+export async function getProfileByUserId(userId: string): Promise<ProfileResponse | null> {
+  const profileRecord = await getProfileRecordByUserId(userId);
 
   if (!profileRecord) {
     return null;

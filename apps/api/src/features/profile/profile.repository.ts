@@ -14,11 +14,11 @@ export type ProfileRecord = {
   quickActions: typeof profileQuickActionsTable.$inferSelect[];
 };
 
-export async function getProfileRecord(profileId = 'profile-primary'): Promise<ProfileRecord | null> {
+export async function getProfileRecordByUserId(userId: string): Promise<ProfileRecord | null> {
   const profileRows = await db
     .select()
     .from(profilesTable)
-    .where(eq(profilesTable.id, profileId))
+    .where(eq(profilesTable.userId, userId))
     .limit(1);
 
   const profile = profileRows[0];
@@ -31,17 +31,17 @@ export async function getProfileRecord(profileId = 'profile-primary'): Promise<P
     db
       .select()
       .from(profileFocusAreasTable)
-      .where(eq(profileFocusAreasTable.profileId, profileId))
+      .where(eq(profileFocusAreasTable.profileId, profile.id))
       .orderBy(asc(profileFocusAreasTable.position)),
     db
       .select()
       .from(profileHighlightsTable)
-      .where(eq(profileHighlightsTable.profileId, profileId))
+      .where(eq(profileHighlightsTable.profileId, profile.id))
       .orderBy(asc(profileHighlightsTable.position)),
     db
       .select()
       .from(profileQuickActionsTable)
-      .where(eq(profileQuickActionsTable.profileId, profileId))
+      .where(eq(profileQuickActionsTable.profileId, profile.id))
       .orderBy(asc(profileQuickActionsTable.position))
   ]);
 
