@@ -18,7 +18,7 @@ export default defineConfig({
     },
     {
       command:
-        'EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:3100/api/v1 pnpm --filter @health/mobile exec expo start --web --port 19007',
+        'EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:3100/api/v1 EXPO_PUBLIC_DEV_USER_ID=user-primary pnpm --filter @health/mobile exec expo start --web --port 19007',
       url: 'http://127.0.0.1:19007',
       reuseExistingServer: false,
       timeout: 180_000

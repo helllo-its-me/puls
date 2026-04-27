@@ -1,8 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { profileResponseSchema } from '@health/shared';
 
-import { mapProfileRecordToResponse } from '../../apps/api/src/features/profile/profile.service.js';
+import * as profileRepository from '../../apps/api/src/features/profile/profile.repository.js';
+import { getProfileByUserId, mapProfileRecordToResponse } from '../../apps/api/src/features/profile/profile.service.js';
 import { profileRecordFixture } from '../fixtures/profile.js';
 
 describe('mapProfileRecordToResponse', () => {
@@ -19,5 +20,16 @@ describe('mapProfileRecordToResponse', () => {
       'sky',
       'lavender'
     ]);
+  });
+
+  it('loads the profile by user id', async () => {
+    const getProfileRecordByUserIdSpy = vi
+      .spyOn(profileRepository, 'getProfileRecordByUserId')
+      .mockResolvedValue(profileRecordFixture);
+
+    const profile = await getProfileByUserId('user-primary');
+
+    expect(getProfileRecordByUserIdSpy).toHaveBeenCalledWith('user-primary');
+    expect(profile?.id).toBe('profile-primary');
   });
 });

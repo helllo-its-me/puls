@@ -69,6 +69,7 @@ export const profileResponseFixture: ProfileResponse = {
 export const profileRecordFixture: ProfileRecord = {
   profile: {
     id: 'profile-primary',
+    userId: 'user-primary',
     firstName: 'Tanya',
     lastName: 'Vorobyova',
     membershipTier: 'Premium care',
