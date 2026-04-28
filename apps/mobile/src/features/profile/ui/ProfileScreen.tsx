@@ -57,28 +57,28 @@ export function ProfileScreen() {
         {profileQuery.isError ? <ProfileErrorState onRetry={() => void profileQuery.refetch()} /> : null}
         {profileQuery.data ? (
           <View style={styles.sections}>
-            <ProfileHero profile={profileQuery.data} />
-            <ProfileSummaryCard profile={profileQuery.data} />
+            <ProfileHero hero={profileQuery.data.hero} />
+            <ProfileSummaryCard summary={profileQuery.data.summary} />
             <View style={styles.section}>
               <ProfileSectionHeader
                 title="Focus right now"
                 description="A clean snapshot of the habits and routines that matter most this week."
               />
-              <ProfileFocusAreaList profile={profileQuery.data} />
+              <ProfileFocusAreaList focusAreas={profileQuery.data.focusAreas} />
             </View>
             <View style={styles.section}>
               <ProfileSectionHeader
                 title="Insights"
                 description="Calm, actionable signals based on your recent activity and support plan."
               />
-              <ProfileHighlights profile={profileQuery.data} />
+              <ProfileHighlights highlights={profileQuery.data.highlights} />
             </View>
             <View style={styles.section}>
               <ProfileSectionHeader
                 title="Quick actions"
                 description="The fastest ways to continue your flow without extra navigation."
               />
-              <ProfileQuickActions profile={profileQuery.data} />
+              <ProfileQuickActions quickActions={profileQuery.data.quickActions} />
             </View>
           </View>
         ) : null}

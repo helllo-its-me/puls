@@ -1,25 +1,25 @@
-import type { ProfileResponse } from '@health/shared';
 import { StyleSheet, View } from 'react-native';
 
+import type { ProfileSummaryViewData } from '@/features/profile/model/profile-screen-view';
 import { ProfileSurfaceCard } from '@/features/profile/ui/ProfileSurfaceCard';
 import { colors, spacing } from '@/theme/tokens';
 import { AppText } from '@/ui/AppText';
 
 type ProfileSummaryCardProps = {
-  profile: ProfileResponse;
+  summary: ProfileSummaryViewData;
 };
 
-export function ProfileSummaryCard({ profile }: ProfileSummaryCardProps) {
+export function ProfileSummaryCard({ summary }: ProfileSummaryCardProps) {
   return (
     <ProfileSurfaceCard>
       <View style={styles.row}>
         <View style={styles.badge}>
-          <AppText variant="sectionTitle">{profile.completionPercent}%</AppText>
+          <AppText variant="sectionTitle">{summary.completionPercent}%</AppText>
         </View>
         <View style={styles.copyBlock}>
-          <AppText variant="sectionTitle">Profile completion is strong</AppText>
-          <AppText variant="muted">{profile.consistencyLabel}</AppText>
-          <AppText variant="muted">{profile.supportLevel}</AppText>
+          <AppText variant="sectionTitle">{summary.title}</AppText>
+          <AppText variant="muted">{summary.consistencyLabel}</AppText>
+          <AppText variant="muted">{summary.supportLevel}</AppText>
         </View>
       </View>
     </ProfileSurfaceCard>

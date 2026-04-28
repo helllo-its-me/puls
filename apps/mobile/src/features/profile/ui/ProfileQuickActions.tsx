@@ -1,15 +1,13 @@
 import { Alert, StyleSheet, View } from 'react-native';
 
-import type { ProfileResponse } from '@health/shared';
-
-import { getProfileActionViews } from '@/features/profile/model/profile-view';
+import type { ProfileQuickActionViewData } from '@/features/profile/model/profile-screen-view';
 import { ProfileSurfaceCard } from '@/features/profile/ui/ProfileSurfaceCard';
 import { Button } from '@/ui/Button';
 import { AppText } from '@/ui/AppText';
 import { colors, radius, spacing } from '@/theme/tokens';
 
 type ProfileQuickActionsProps = {
-  profile: ProfileResponse;
+  quickActions: ProfileQuickActionViewData[];
 };
 
 const toneMap = {
@@ -18,12 +16,10 @@ const toneMap = {
   lavender: colors.lavender
 };
 
-export function ProfileQuickActions({ profile }: ProfileQuickActionsProps) {
-  const actionViews = getProfileActionViews(profile);
-
+export function ProfileQuickActions({ quickActions }: ProfileQuickActionsProps) {
   return (
     <View style={styles.container}>
-      {actionViews.map((action) => (
+      {quickActions.map((action) => (
         <ProfileSurfaceCard key={action.id}>
           <View style={styles.row}>
             <View style={[styles.iconStub, { backgroundColor: toneMap[action.tone] }]} />
@@ -33,7 +29,7 @@ export function ProfileQuickActions({ profile }: ProfileQuickActionsProps) {
             </View>
           </View>
           <Button
-            label={action.label}
+            label={action.actionLabel}
             onPress={() => {
               Alert.alert(action.label, 'Action flow will be connected in the next slice.');
             }}
