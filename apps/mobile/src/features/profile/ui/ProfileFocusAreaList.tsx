@@ -1,13 +1,11 @@
-import type { ProfileResponse } from '@health/shared';
 import { StyleSheet, View } from 'react-native';
 
-import { getProfileFocusTones } from '@/features/profile/model/profile-view';
-import { ProfileSurfaceCard } from '@/features/profile/ui/ProfileSurfaceCard';
+import type { ProfileFocusAreaItemViewData } from '@/features/profile/model/profile-screen-view';
 import { colors, radius, spacing } from '@/theme/tokens';
 import { AppText } from '@/ui/AppText';
 
 type ProfileFocusAreaListProps = {
-  profile: ProfileResponse;
+  focusAreas: ProfileFocusAreaItemViewData[];
 };
 
 const toneMap = {
@@ -16,24 +14,18 @@ const toneMap = {
   lavender: colors.lavender
 };
 
-export function ProfileFocusAreaList({ profile }: ProfileFocusAreaListProps) {
-  const focusTones = getProfileFocusTones(profile);
-
+export function ProfileFocusAreaList({ focusAreas }: ProfileFocusAreaListProps) {
   return (
     <View style={styles.container}>
-      {profile.focusAreas.map((focusArea) => {
-        const tone = focusTones.find((item) => item.id === focusArea.id)?.tone ?? 'mint';
-
-        return (
-          <View key={focusArea.id} style={[styles.item, { backgroundColor: toneMap[tone] }]}>
-            <View style={styles.badge} />
-            <View style={styles.copyBlock}>
-              <AppText variant="sectionTitle">{focusArea.label}</AppText>
-              <AppText variant="muted">{focusArea.progressLabel}</AppText>
-            </View>
+      {focusAreas.map((focusArea) => (
+        <View key={focusArea.id} style={[styles.item, { backgroundColor: toneMap[focusArea.tone] }]}>
+          <View style={styles.badge} />
+          <View style={styles.copyBlock}>
+            <AppText variant="sectionTitle">{focusArea.label}</AppText>
+            <AppText variant="muted">{focusArea.progressLabel}</AppText>
           </View>
-        );
-      })}
+        </View>
+      ))}
     </View>
   );
 }

@@ -1,18 +1,18 @@
-import type { ProfileResponse } from '@health/shared';
 import { StyleSheet, View } from 'react-native';
 
+import type { ProfileHighlightViewData } from '@/features/profile/model/profile-screen-view';
 import { ProfileSurfaceCard } from '@/features/profile/ui/ProfileSurfaceCard';
 import { spacing } from '@/theme/tokens';
 import { AppText } from '@/ui/AppText';
 
 type ProfileHighlightsProps = {
-  profile: ProfileResponse;
+  highlights: ProfileHighlightViewData[];
 };
 
-export function ProfileHighlights({ profile }: ProfileHighlightsProps) {
+export function ProfileHighlights({ highlights }: ProfileHighlightsProps) {
   return (
     <View style={styles.container}>
-      {profile.highlights.map((highlight) => (
+      {highlights.map((highlight) => (
         <ProfileSurfaceCard key={highlight.id}>
           <AppText variant="sectionTitle">{highlight.title}</AppText>
           <AppText variant="muted">{highlight.description}</AppText>

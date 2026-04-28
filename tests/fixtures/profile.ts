@@ -1,6 +1,6 @@
 import type { ProfileResponse } from '@health/shared';
 
-import type { ProfileRecord } from '../../apps/api/src/features/profile/profile.repository.js';
+import type { ProfileAggregate } from '../../apps/api/src/features/profile/profile.domain.js';
 
 export const profileResponseFixture: ProfileResponse = {
   id: 'profile-primary',
@@ -66,7 +66,7 @@ export const profileResponseFixture: ProfileResponse = {
   ]
 };
 
-export const profileRecordFixture: ProfileRecord = {
+export const profileAggregateFixture: ProfileAggregate = {
   profile: {
     id: 'profile-primary',
     userId: 'user-primary',

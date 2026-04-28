@@ -1,7 +1,7 @@
 import type { ProfileResponse } from '@health/shared';
 
-import type { ProfileRecord } from './profile.repository.js';
-import { getProfileRecordByUserId } from './profile.repository.js';
+import type { ProfileAggregate } from './profile.domain.js';
+import { getProfileByUserId as getProfileAggregateByUserId } from './profile.repository.js';
 
 function getAccent(
   accent: string
@@ -36,8 +36,8 @@ function formatNextSessionLabel(nextSessionAt: Date): string {
   return `Next guided session on ${formatter.format(nextSessionAt)}`;
 }
 
-export function mapProfileRecordToResponse(profileRecord: ProfileRecord): ProfileResponse {
-  const { profile, focusAreas, highlights, quickActions } = profileRecord;
+export function mapProfileAggregateToResponse(profileAggregate: ProfileAggregate): ProfileResponse {
+  const { profile, focusAreas, highlights, quickActions } = profileAggregate;
 
   return {
     id: profile.id,
@@ -72,11 +72,11 @@ export function mapProfileRecordToResponse(profileRecord: ProfileRecord): Profil
 }
 
 export async function getProfileByUserId(userId: string): Promise<ProfileResponse | null> {
-  const profileRecord = await getProfileRecordByUserId(userId);
+  const profileAggregate = await getProfileAggregateByUserId(userId);
 
-  if (!profileRecord) {
+  if (!profileAggregate) {
     return null;
   }
 
-  return mapProfileRecordToResponse(profileRecord);
+  return mapProfileAggregateToResponse(profileAggregate);
 }

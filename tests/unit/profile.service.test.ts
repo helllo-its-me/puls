@@ -3,12 +3,12 @@ import { describe, expect, it, vi } from 'vitest';
 import { profileResponseSchema } from '@health/shared';
 
 import * as profileRepository from '../../apps/api/src/features/profile/profile.repository.js';
-import { getProfileByUserId, mapProfileRecordToResponse } from '../../apps/api/src/features/profile/profile.service.js';
-import { profileRecordFixture } from '../fixtures/profile.js';
+import { getProfileByUserId, mapProfileAggregateToResponse } from '../../apps/api/src/features/profile/profile.service.js';
+import { profileAggregateFixture } from '../fixtures/profile.js';
 
 describe('mapProfileRecordToResponse', () => {
   it('returns a profile that matches the shared contract', () => {
-    const profile = mapProfileRecordToResponse(profileRecordFixture);
+    const profile = mapProfileAggregateToResponse(profileAggregateFixture);
     const parsedProfile = profileResponseSchema.parse(profile);
 
     expect(parsedProfile.id).toBe('profile-primary');
@@ -23,13 +23,13 @@ describe('mapProfileRecordToResponse', () => {
   });
 
   it('loads the profile by user id', async () => {
-    const getProfileRecordByUserIdSpy = vi
-      .spyOn(profileRepository, 'getProfileRecordByUserId')
-      .mockResolvedValue(profileRecordFixture);
+    const getProfileByUserIdSpy = vi
+      .spyOn(profileRepository, 'getProfileByUserId')
+      .mockResolvedValue(profileAggregateFixture);
 
     const profile = await getProfileByUserId('user-primary');
 
-    expect(getProfileRecordByUserIdSpy).toHaveBeenCalledWith('user-primary');
+    expect(getProfileByUserIdSpy).toHaveBeenCalledWith('user-primary');
     expect(profile?.id).toBe('profile-primary');
   });
 });

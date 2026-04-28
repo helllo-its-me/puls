@@ -1,42 +1,39 @@
-import type { ProfileResponse } from '@health/shared';
 import { StyleSheet, View } from 'react-native';
 
-import { getProfileHeroStats } from '@/features/profile/model/profile-view';
 import { ProfileAccentOrb } from '@/features/profile/ui/ProfileAccentOrb';
+import type { ProfileHeroViewData } from '@/features/profile/model/profile-screen-view';
 import { colors, radius, spacing } from '@/theme/tokens';
 import { AppText } from '@/ui/AppText';
 
 type ProfileHeroProps = {
-  profile: ProfileResponse;
+  hero: ProfileHeroViewData;
 };
 
-export function ProfileHero({ profile }: ProfileHeroProps) {
-  const heroStats = getProfileHeroStats(profile);
-
+export function ProfileHero({ hero }: ProfileHeroProps) {
   return (
     <View style={styles.card}>
       <View style={styles.topRow}>
         <View style={styles.membershipBadge}>
-          <AppText variant="caption">{profile.membershipTier}</AppText>
+          <AppText variant="caption">{hero.membershipTier}</AppText>
         </View>
-        <AppText variant="caption">{profile.joinedAtLabel}</AppText>
+        <AppText variant="caption">{hero.joinedAtLabel}</AppText>
       </View>
       <View style={styles.orbitRow}>
         <View style={styles.avatarCluster}>
           <ProfileAccentOrb tone="pink" size={54} />
           <View style={styles.centerAvatar}>
-            <AppText variant="title">{profile.firstName.charAt(0)}</AppText>
+            <AppText variant="title">{hero.avatarLabel}</AppText>
           </View>
           <ProfileAccentOrb tone="lavender" size={42} />
         </View>
       </View>
       <View style={styles.copyBlock}>
-        <AppText variant="hero">{profile.firstName}, your profile</AppText>
-        <AppText variant="muted">{profile.planTitle}</AppText>
-        <AppText variant="muted">{profile.nextSessionLabel}</AppText>
+        <AppText variant="hero">{hero.title}</AppText>
+        <AppText variant="muted">{hero.planTitle}</AppText>
+        <AppText variant="muted">{hero.nextSessionLabel}</AppText>
       </View>
       <View style={styles.statsRow}>
-        {heroStats.map((stat) => (
+        {hero.stats.map((stat) => (
           <View key={stat.id} style={styles.statPill}>
             <AppText variant="caption">{stat.label}</AppText>
             <AppText variant="sectionTitle">{stat.value}</AppText>
