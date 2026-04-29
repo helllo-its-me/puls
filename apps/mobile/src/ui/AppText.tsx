@@ -6,11 +6,13 @@ import { colors, typography } from '@/theme/tokens';
 type AppTextVariant =
   | 'body'
   | 'caption'
+  | 'captionStrong'
   | 'muted'
   | 'sectionTitle'
   | 'title'
   | 'hero'
-  | 'button';
+  | 'button'
+  | 'buttonDark';
 
 type AppTextProps = PropsWithChildren<{
   variant?: AppTextVariant;
@@ -32,6 +34,12 @@ const styles = StyleSheet.create({
     fontSize: typography.caption,
     lineHeight: 20,
     color: colors.textTertiary
+  },
+  captionStrong: {
+    fontSize: typography.caption,
+    lineHeight: 20,
+    color: colors.textPrimary,
+    fontWeight: '700'
   },
   muted: {
     fontSize: typography.body,
@@ -60,6 +68,12 @@ const styles = StyleSheet.create({
     fontSize: typography.button,
     lineHeight: 24,
     color: colors.surface,
+    fontWeight: '700'
+  },
+  buttonDark: {
+    fontSize: typography.button,
+    lineHeight: 24,
+    color: colors.textPrimary,
     fontWeight: '700'
   }
 });

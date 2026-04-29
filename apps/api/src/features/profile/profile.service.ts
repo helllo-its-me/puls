@@ -13,29 +13,6 @@ function getAccent(
   return 'mint';
 }
 
-function formatJoinedAtLabel(joinedAt: Date): string {
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC'
-  });
-
-  return `With us since ${formatter.format(joinedAt)}`;
-}
-
-function formatNextSessionLabel(nextSessionAt: Date): string {
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-    timeZone: 'UTC'
-  });
-
-  return `Next guided session on ${formatter.format(nextSessionAt)}`;
-}
-
 export function mapProfileAggregateToResponse(profileAggregate: ProfileAggregate): ProfileResponse {
   const { profile, focusAreas, highlights, quickActions } = profileAggregate;
 
@@ -45,8 +22,8 @@ export function mapProfileAggregateToResponse(profileAggregate: ProfileAggregate
     fullName: `${profile.firstName} ${profile.lastName}`,
     membershipTier: profile.membershipTier,
     planTitle: profile.planTitle,
-    joinedAtLabel: formatJoinedAtLabel(profile.joinedAt),
-    nextSessionLabel: formatNextSessionLabel(profile.nextSessionAt),
+    joinedAt: profile.joinedAt.toISOString(),
+    nextSessionAt: profile.nextSessionAt.toISOString(),
     streakDays: profile.streakDays,
     completionPercent: profile.completionPercent,
     energyLabel: profile.energyLabel,

@@ -1,5 +1,9 @@
 import { z } from 'zod';
 
+const isoDateTimeStringSchema = z.string().refine((value) => !Number.isNaN(Date.parse(value)), {
+  message: 'Expected ISO datetime string'
+});
+
 export const profileFocusAreaSchema = z.object({
   id: z.string(),
   label: z.string(),
@@ -25,8 +29,8 @@ export const profileResponseSchema = z.object({
   fullName: z.string(),
   membershipTier: z.string(),
   planTitle: z.string(),
-  joinedAtLabel: z.string(),
-  nextSessionLabel: z.string(),
+  joinedAt: isoDateTimeStringSchema,
+  nextSessionAt: isoDateTimeStringSchema,
   streakDays: z.number().int().nonnegative(),
   completionPercent: z.number().int().min(0).max(100),
   energyLabel: z.string(),
