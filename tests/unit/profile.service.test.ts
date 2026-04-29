@@ -12,8 +12,8 @@ describe('mapProfileRecordToResponse', () => {
     const parsedProfile = profileResponseSchema.parse(profile);
 
     expect(parsedProfile.id).toBe('profile-primary');
-    expect(parsedProfile.joinedAtLabel).toBe('With us since April 2026');
-    expect(parsedProfile.nextSessionLabel).toBe('Next guided session on Apr 25, 17:30');
+    expect(parsedProfile.joinedAt).toBe('2026-04-01T09:00:00.000Z');
+    expect(parsedProfile.nextSessionAt).toBe('2026-04-25T17:30:00.000Z');
     expect(parsedProfile.focusAreas).toHaveLength(3);
     expect(parsedProfile.quickActions.map((action) => action.accent)).toEqual([
       'mint',

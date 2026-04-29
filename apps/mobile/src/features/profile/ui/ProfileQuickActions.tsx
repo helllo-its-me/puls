@@ -1,6 +1,7 @@
 import { Alert, StyleSheet, View } from 'react-native';
 
 import type { ProfileQuickActionViewData } from '@/features/profile/model/profile-screen-view';
+import { useTranslation } from '@/i18n/LocalizationProvider';
 import { ProfileSurfaceCard } from '@/features/profile/ui/ProfileSurfaceCard';
 import { Button } from '@/ui/Button';
 import { AppText } from '@/ui/AppText';
@@ -17,6 +18,8 @@ const toneMap = {
 };
 
 export function ProfileQuickActions({ quickActions }: ProfileQuickActionsProps) {
+  const { t } = useTranslation();
+
   return (
     <View style={styles.container}>
       {quickActions.map((action) => (
@@ -31,7 +34,7 @@ export function ProfileQuickActions({ quickActions }: ProfileQuickActionsProps) 
           <Button
             label={action.actionLabel}
             onPress={() => {
-              Alert.alert(action.label, 'Action flow will be connected in the next slice.');
+              Alert.alert(action.label, t('profile.quickAction.unavailable'));
             }}
           />
         </ProfileSurfaceCard>
