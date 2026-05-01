@@ -3,6 +3,7 @@ import { integer, pgTable, text, timestamp, varchar } from 'drizzle-orm/pg-core'
 export const usersTable = pgTable('users', {
   id: text('id').primaryKey(),
   email: varchar('email', { length: 255 }).notNull().unique(),
+  passwordHash: text('password_hash'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull()
 });
 

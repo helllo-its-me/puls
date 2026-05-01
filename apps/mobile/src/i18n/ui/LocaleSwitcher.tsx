@@ -5,6 +5,7 @@ import { colors, radius, spacing } from '@/theme/tokens';
 import { AppText } from '@/ui/AppText';
 
 type LocaleSwitcherProps = {
+  compact?: boolean;
   currentLocale: AppLocale;
   label: string;
   onSelectLocale: (locale: AppLocale) => void;
@@ -27,21 +28,26 @@ const localeOptions: readonly LocaleOption[] = [
 ] as const;
 
 export function LocaleSwitcher({
+  compact = false,
   currentLocale,
   label,
   onSelectLocale
 }: LocaleSwitcherProps) {
   return (
-    <View style={styles.container}>
-      <AppText variant="caption">{label}</AppText>
-      <View style={styles.control}>
+    <View style={[styles.container, compact ? styles.containerCompact : undefined]}>
+      {compact ? null : <AppText variant="caption">{label}</AppText>}
+      <View style={[styles.control, compact ? styles.controlCompact : undefined]}>
         {localeOptions.map((option) => {
           const isActive = option.value === currentLocale;
 
           return (
             <Pressable
               key={option.value}
-              style={[styles.option, isActive ? styles.optionActive : undefined]}
+              style={[
+                styles.option,
+                compact ? styles.optionCompact : undefined,
+                isActive ? styles.optionActive : undefined
+              ]}
               onPress={() => {
                 onSelectLocale(option.value);
               }}
@@ -64,6 +70,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md
   },
+  containerCompact: {
+    alignSelf: 'flex-start'
+  },
   control: {
     flexDirection: 'row',
     gap: spacing.xs,
@@ -71,12 +80,21 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     backgroundColor: colors.surface
   },
+  controlCompact: {
+    padding: 2,
+    backgroundColor: colors.surfaceMuted
+  },
   option: {
     minWidth: 52,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderRadius: radius.pill,
     alignItems: 'center'
+  },
+  optionCompact: {
+    minWidth: 38,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm
   },
   optionActive: {
     backgroundColor: colors.accent

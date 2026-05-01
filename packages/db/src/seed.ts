@@ -15,11 +15,13 @@ async function seedProfile() {
   await db.insert(usersTable).values({
     id: seededUserId,
     email: 'tanya@example.com',
+    passwordHash: null,
     createdAt: new Date('2026-04-01T08:30:00.000Z')
   }).onConflictDoUpdate({
     target: usersTable.id,
     set: {
       email: 'tanya@example.com',
+      passwordHash: null,
       createdAt: new Date('2026-04-01T08:30:00.000Z')
     }
   });

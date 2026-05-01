@@ -1,9 +1,12 @@
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
+import { useAuth } from '@/features/auth/AuthProvider';
 import { useProfileQuery } from '@/features/profile/hooks/use-profile-query';
 import { useTranslation } from '@/i18n/LocalizationProvider';
 import { LocaleSwitcher } from '@/i18n/ui/LocaleSwitcher';
+import { ApiError } from '@/lib/api/api-error';
 import { ProfileFocusAreaList } from '@/features/profile/ui/ProfileFocusAreaList';
 import { ProfileHero } from '@/features/profile/ui/ProfileHero';
 import { ProfileHighlights } from '@/features/profile/ui/ProfileHighlights';
@@ -44,8 +47,19 @@ function ProfileErrorState({ onRetry }: ProfileErrorStateProps) {
 }
 
 export function ProfileScreen() {
+  const auth = useAuth();
   const profileQuery = useProfileQuery();
   const { locale, setLocale, t } = useTranslation();
+
+  useEffect(() => {
+    const error = profileQuery.error;
+
+    if (!(error instanceof ApiError) || error.status !== 401) {
+      return;
+    }
+
+    void auth.logout();
+  }, [auth, profileQuery.error]);
 
   return (
     <Screen>
@@ -55,13 +69,23 @@ export function ProfileScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.headerBlock}>
-          <AppText variant="caption">{t('profile.screen.caption')}</AppText>
+          <View style={styles.headerTopRow}>
+            <AppText variant="caption">{t('profile.screen.caption')}</AppText>
+            <LocaleSwitcher
+              compact
+              currentLocale={locale}
+              label={t('language.switch.label')}
+              onSelectLocale={(nextLocale) => {
+                void setLocale(nextLocale);
+              }}
+            />
+          </View>
           <AppText variant="title">{t('profile.screen.title')}</AppText>
-          <LocaleSwitcher
-            currentLocale={locale}
-            label={t('language.switch.label')}
-            onSelectLocale={(nextLocale) => {
-              void setLocale(nextLocale);
+          <Button
+            label={t('auth.logout')}
+            variant="secondary"
+            onPress={() => {
+              void auth.logout();
             }}
           />
         </View>
@@ -109,6 +133,12 @@ const styles = StyleSheet.create({
   },
   headerBlock: {
     gap: spacing.sm
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md
   },
   sections: {
     gap: spacing.xl
