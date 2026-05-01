@@ -7,19 +7,22 @@ type ButtonProps = {
   label: string;
   onPress: () => void;
   variant?: 'primary' | 'secondary';
+  disabled?: boolean;
 };
 
-export function Button({ label, onPress, variant = 'primary' }: ButtonProps) {
+export function Button({ label, onPress, variant = 'primary', disabled = false }: ButtonProps) {
   return (
     <Pressable
       style={({ pressed }) => [
         styles.button,
         variant === 'secondary' ? styles.buttonSecondary : styles.buttonPrimary,
-        pressed ? styles.buttonPressed : undefined
+        pressed && !disabled ? styles.buttonPressed : undefined,
+        disabled ? styles.buttonDisabled : undefined
       ]}
       onPress={onPress}
+      disabled={disabled}
     >
-      <AppText variant="button">{label}</AppText>
+      <AppText variant={variant === 'secondary' ? 'buttonDark' : 'button'}>{label}</AppText>
     </Pressable>
   );
 }
@@ -40,5 +43,8 @@ const styles = StyleSheet.create({
   },
   buttonPressed: {
     backgroundColor: colors.accentPressed
+  },
+  buttonDisabled: {
+    backgroundColor: colors.textTertiary
   }
 });

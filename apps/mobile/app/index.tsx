@@ -1,5 +1,5 @@
-import { ProfileScreen } from '@/features/profile/ui/ProfileScreen';
+import { AuthGate } from '@/features/auth/ui/AuthGate';
 
 export default function HomeScreen() {
-  return <ProfileScreen />;
+  return <AuthGate />;
 }
