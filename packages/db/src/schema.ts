@@ -26,6 +26,18 @@ export const profilesTable = pgTable('profiles', {
   supportNote: text('support_note').notNull()
 });
 
+export const passwordResetCodesTable = pgTable('password_reset_codes', {
+  id: text('id').primaryKey(),
+  email: varchar('email', { length: 255 }).notNull(),
+  codeHash: text('code_hash').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  resetTokenHash: text('reset_token_hash'),
+  resetTokenExpiresAt: timestamp('reset_token_expires_at', { withTimezone: true }),
+  verifiedAt: timestamp('verified_at', { withTimezone: true }),
+  usedAt: timestamp('used_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull()
+});
+
 export const profileFocusAreasTable = pgTable('profile_focus_areas', {
   id: text('id').primaryKey(),
   profileId: text('profile_id')
