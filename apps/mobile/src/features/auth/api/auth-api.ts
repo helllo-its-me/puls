@@ -1,6 +1,11 @@
 import {
+  authStatusResponseSchema,
   authResponseSchema,
+  passwordResetVerifyResponseSchema,
   type LoginRequest,
+  type PasswordResetCompleteRequest,
+  type PasswordResetRequest,
+  type PasswordResetVerifyRequest,
   type RegisterRequest
 } from '@health/shared';
 
@@ -12,4 +17,16 @@ export function register(input: RegisterRequest) {
 
 export function login(input: LoginRequest) {
   return apiPost('/auth/login', input, authResponseSchema);
+}
+
+export function requestPasswordReset(input: PasswordResetRequest) {
+  return apiPost('/auth/password-reset/request', input, authStatusResponseSchema);
+}
+
+export function verifyPasswordResetCode(input: PasswordResetVerifyRequest) {
+  return apiPost('/auth/password-reset/verify', input, passwordResetVerifyResponseSchema);
+}
+
+export function completePasswordReset(input: PasswordResetCompleteRequest) {
+  return apiPost('/auth/password-reset/complete', input, authStatusResponseSchema);
 }

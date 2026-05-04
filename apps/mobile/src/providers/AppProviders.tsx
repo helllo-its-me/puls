@@ -20,9 +20,9 @@ export function AppProviders({ children }: PropsWithChildren) {
   return (
     <SafeAreaProvider>
       <LocalizationProvider>
-        <AuthProvider>
-          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-        </AuthProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>{children}</AuthProvider>
+        </QueryClientProvider>
       </LocalizationProvider>
     </SafeAreaProvider>
   );

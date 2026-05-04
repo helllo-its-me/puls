@@ -1,5 +1,9 @@
 import { expect, type Page, test } from '@playwright/test';
 
+import { passwordResetCodeTtlSeconds } from '../../packages/shared/src/auth/constants';
+
+const millisecondsPerSecond = 1000;
+
 async function routeApiToTestServer(page: Page) {
   await page.route('**/api/v1/**', async (route) => {
     const requestUrl = new URL(route.request().url());
@@ -116,6 +120,95 @@ test('toggles password visibility on the auth form', async ({ page }) => {
 
   await page.getByText('Hide').click();
   await expect(passwordField).toHaveAttribute('type', 'password');
+});
+
+test('completes the password reset UI flow', async ({ page }) => {
+  let resetRequestCount = 0;
+
+  await page.route('**/api/v1/auth/password-reset/**', async (route) => {
+    if (route.request().url().includes('/password-reset/request')) {
+      resetRequestCount += 1;
+    }
+
+    const responseBody = route.request().url().includes('/password-reset/verify')
+      ? {
+          resetToken: 'verified-reset-token'
+        }
+      : {
+          status: 'ok'
+        };
+
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(responseBody)
+    });
+  });
+  await page.goto('/');
+  await page.clock.install({ time: new Date('2026-05-03T10:00:00.000Z') });
+
+  await page.getByText('Forgot password?').click();
+  await expect(page.getByText('Reset your password')).toBeVisible();
+
+  await page.getByPlaceholder('Email').fill('reset@example.com');
+  await page.getByText('Send code').click();
+  await expect(page.getByText('Enter the code')).toBeVisible();
+  await expect(page.getByText('Code expires in')).toBeVisible();
+
+  await page.clock.runFor((passwordResetCodeTtlSeconds + 1) * millisecondsPerSecond);
+  await expect(page.getByText('Send a new code')).toBeVisible();
+  await page.getByText('Send a new code').click();
+  await expect.poll(() => resetRequestCount).toBe(2);
+  await expect(page.getByText('Code expires in')).toBeVisible();
+
+  await page.getByPlaceholder('Reset code').fill('123456');
+  await page.getByText('Verify code').click();
+  await expect(page.getByText('Create a new password')).toBeVisible();
+  await expect(page.getByPlaceholder('Reset code')).toBeHidden();
+  await expect(page.getByText('Code expires in')).toBeHidden();
+
+  await page.getByRole('textbox', { name: 'Password', exact: true }).fill('new-password');
+  await page.getByPlaceholder('Confirm password').fill('new-password');
+  await page.getByText('Update password').click();
+
+  await expect(page.getByText('Welcome back')).toBeVisible();
+  await expect(page.getByText('Password updated. Log in with your new password.')).toBeVisible();
+});
+
+test('keeps password reset steps locked until email and code are verified', async ({ page }) => {
+  await page.route('**/api/v1/auth/password-reset/request', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        status: 'ok'
+      })
+    });
+  });
+  await page.route('**/api/v1/auth/password-reset/verify', async (route) => {
+    await route.fulfill({
+      status: 400,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        message: 'Invalid or expired reset code'
+      })
+    });
+  });
+  await page.goto('/');
+
+  await page.getByText('Forgot password?').click();
+  await page.getByText('Send code').click();
+  await expect(page.getByText('Enter your email to continue.')).toBeVisible();
+  await expect(page.getByText('Enter the code')).toBeHidden();
+
+  await page.getByPlaceholder('Email').fill('reset@example.com');
+  await page.getByText('Send code').click();
+  await expect(page.getByText('Enter the code')).toBeVisible();
+
+  await page.getByPlaceholder('Reset code').fill('123456');
+  await page.getByText('Verify code').click();
+  await expect(page.getByText('The reset code is invalid or expired.')).toBeVisible();
+  await expect(page.getByText('Create a new password')).toBeHidden();
 });
 
 test('switches language from the login screen before authentication', async ({ page }) => {

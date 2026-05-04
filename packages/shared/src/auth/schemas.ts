@@ -16,6 +16,32 @@ export const loginRequestSchema = z.object({
   password: passwordSchema
 });
 
+export const passwordResetRequestSchema = z.object({
+  email: emailSchema
+});
+
+export const passwordResetVerifyRequestSchema = z.object({
+  email: emailSchema,
+  code: z.string().trim().regex(/^\d{6}$/)
+});
+
+export const passwordResetVerifyResponseSchema = z.object({
+  resetToken: z.string().min(1)
+});
+
+export const passwordResetCompleteRequestSchema = z.object({
+  resetToken: z.string().min(1),
+  password: passwordSchema,
+  passwordConfirmation: passwordSchema
+}).refine((input) => input.password === input.passwordConfirmation, {
+  message: 'Password confirmation must match password',
+  path: ['passwordConfirmation']
+});
+
+export const authStatusResponseSchema = z.object({
+  status: z.literal('ok')
+});
+
 export const authUserSchema = z.object({
   id: z.string(),
   email: emailSchema

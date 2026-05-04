@@ -48,7 +48,9 @@ describe("auth service", () => {
   });
 
   it("logs in an existing user with a valid password", async () => {
-    const { hashPassword, loginUser } =
+    const { hashPassword } =
+      await import("../../apps/api/src/features/auth/auth.password.js");
+    const { loginUser } =
       await import("../../apps/api/src/features/auth/auth.service.js");
     const passwordHash = await hashPassword("strong-password");
 
