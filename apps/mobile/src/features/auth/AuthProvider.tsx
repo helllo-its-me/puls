@@ -4,8 +4,10 @@ import { createContext, PropsWithChildren, useContext, useEffect, useMemo, useSt
 
 import {
   getCurrentUser,
-  login as loginRequest,
-  register as registerRequest
+  login,
+  logout,
+  refreshSession,
+  register
 } from '@/features/auth/api/auth-api';
 import {
   clearAuthSession,
@@ -20,6 +22,7 @@ type AuthContextValue = {
   isLoading: boolean;
   login: (input: LoginRequest) => Promise<void>;
   register: (input: RegisterRequest) => Promise<void>;
+  refreshSession: () => Promise<AuthResponse | null>;
   logout: () => Promise<void>;
 };
 
@@ -29,12 +32,19 @@ function shouldClearStoredSession(error: unknown): boolean {
   return error instanceof ApiError && error.status === 401;
 }
 
+async function refreshStoredSession(refreshToken: string): Promise<AuthResponse> {
+  const nextSession = await refreshSession({ refreshToken });
+  await saveAuthSession(nextSession);
+
+  return nextSession;
+}
+
 export function AuthProvider({ children }: PropsWithChildren) {
   const queryClient = useQueryClient();
   const [session, setSession] = useState<AuthResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const loginMutation = useMutation({
-    mutationFn: loginRequest,
+    mutationFn: login,
     onSuccess: async (nextSession) => {
       await saveAuthSession(nextSession);
       setSession(nextSession);
@@ -42,13 +52,19 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
   });
   const registerMutation = useMutation({
-    mutationFn: registerRequest,
+    mutationFn: register,
     onSuccess: async (nextSession) => {
       await saveAuthSession(nextSession);
       setSession(nextSession);
       await queryClient.invalidateQueries({ queryKey: ['profile'] });
     }
   });
+
+  async function clearSessionState(): Promise<void> {
+    await clearAuthSession();
+    setSession(null);
+    queryClient.removeQueries({ queryKey: ['profile'] });
+  }
 
   useEffect(() => {
     let isMounted = true;
@@ -67,6 +83,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         const currentUser = await getCurrentUser(storedSession.accessToken);
         const verifiedSession: AuthResponse = {
           accessToken: storedSession.accessToken,
+          refreshToken: storedSession.refreshToken,
           user: currentUser.user
         };
 
@@ -77,11 +94,23 @@ export function AuthProvider({ children }: PropsWithChildren) {
         }
       } catch (error) {
         if (shouldClearStoredSession(error)) {
-          await clearAuthSession();
-          queryClient.removeQueries({ queryKey: ['profile'] });
+          try {
+            const refreshedSession = await refreshStoredSession(storedSession.refreshToken);
 
-          if (isMounted) {
-            setSession(null);
+            if (isMounted) {
+              setSession(refreshedSession);
+            }
+          } catch (refreshError) {
+            if (shouldClearStoredSession(refreshError)) {
+              await clearAuthSession();
+              queryClient.removeQueries({ queryKey: ['profile'] });
+
+              if (isMounted) {
+                setSession(null);
+              }
+            } else if (isMounted) {
+              setSession(storedSession);
+            }
           }
         } else if (isMounted) {
           setSession(storedSession);
@@ -111,10 +140,33 @@ export function AuthProvider({ children }: PropsWithChildren) {
       register: async (input) => {
         await registerMutation.mutateAsync(input);
       },
+      refreshSession: async () => {
+        if (!session) {
+          return null;
+        }
+
+        try {
+          const nextSession = await refreshStoredSession(session.refreshToken);
+
+          setSession(nextSession);
+          await queryClient.invalidateQueries({ queryKey: ['profile'] });
+
+          return nextSession;
+        } catch (error) {
+          if (shouldClearStoredSession(error)) {
+            await clearSessionState();
+            return null;
+          }
+
+          throw error;
+        }
+      },
       logout: async () => {
-        await clearAuthSession();
-        setSession(null);
-        queryClient.removeQueries({ queryKey: ['profile'] });
+        if (session) {
+          await logout({ refreshToken: session.refreshToken }).catch(() => undefined);
+        }
+
+        await clearSessionState();
       }
     }),
     [isLoading, loginMutation, queryClient, registerMutation, session]

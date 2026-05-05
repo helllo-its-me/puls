@@ -7,6 +7,7 @@ import {
   type PasswordResetCompleteRequest,
   type PasswordResetRequest,
   type PasswordResetVerifyRequest,
+  type RefreshTokenRequest,
   type RegisterRequest
 } from '@health/shared';
 
@@ -22,6 +23,14 @@ export function login(input: LoginRequest) {
 
 export function getCurrentUser(accessToken: string) {
   return apiGet('/auth/me', authMeResponseSchema, accessToken);
+}
+
+export function refreshSession(input: RefreshTokenRequest) {
+  return apiPost('/auth/refresh', input, authResponseSchema);
+}
+
+export function logout(input: RefreshTokenRequest) {
+  return apiPost('/auth/logout', input, authStatusResponseSchema);
 }
 
 export function requestPasswordReset(input: PasswordResetRequest) {

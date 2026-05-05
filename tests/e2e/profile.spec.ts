@@ -1,6 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 
 import { passwordResetCodeTtlSeconds } from '../../packages/shared/src/auth/constants';
+import { profileResponseFixture } from '../fixtures/profile';
 
 const millisecondsPerSecond = 1000;
 
@@ -232,6 +233,94 @@ test('registers and renders the profile screen with live API data', async ({ pag
   await expect(page.getByText('Test, your profile')).toBeVisible();
   await expect(page.getByText('Focus right now')).toBeVisible();
   await expect(page.getByText('Quick actions')).toBeVisible();
+});
+
+test('refreshes the auth session after an expired profile access token', async ({ page }) => {
+  let profileRequestCount = 0;
+  let refreshRequestCount = 0;
+
+  await page.route('**/api/v1/**', async (route) => {
+    const requestUrl = route.request().url();
+
+    if (requestUrl.includes('/auth/register')) {
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          accessToken: 'expired-access-token',
+          refreshToken: 'current-refresh-token',
+          user: {
+            id: 'user-primary',
+            email: 'refresh@example.com'
+          }
+        })
+      });
+      return;
+    }
+
+    if (requestUrl.includes('/auth/refresh')) {
+      refreshRequestCount += 1;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          accessToken: 'next-access-token',
+          refreshToken: 'next-refresh-token',
+          user: {
+            id: 'user-primary',
+            email: 'refresh@example.com'
+          }
+        })
+      });
+      return;
+    }
+
+    if (requestUrl.includes('/profile')) {
+      profileRequestCount += 1;
+
+      if (profileRequestCount === 1) {
+        await route.fulfill({
+          status: 401,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            message: 'Current user is required'
+          })
+        });
+        return;
+      }
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ...profileResponseFixture,
+          firstName: 'Refresh',
+          fullName: 'Refresh Member'
+        })
+      });
+      return;
+    }
+
+    await route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        message: 'Unexpected test route'
+      })
+    });
+  });
+
+  await page.goto('/');
+  await page.getByText('Create one').click();
+  await page.getByPlaceholder('First name').fill('Refresh');
+  await page.getByPlaceholder('Last name').fill('Member');
+  await page.getByPlaceholder('Email').fill('refresh@example.com');
+  await page.getByPlaceholder('Password').fill('strong-password');
+  await page.getByText('Create account').click();
+
+  await expect(page.getByText('Refresh, your profile')).toBeVisible();
+  await expect.poll(() => refreshRequestCount).toBe(1);
+  await expect.poll(() => profileRequestCount).toBe(2);
 });
 
 test('switches profile interface and system content to russian', async ({ page }) => {

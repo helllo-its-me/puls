@@ -7,12 +7,18 @@ import {
   passwordResetRequestSchema,
   passwordResetVerifyResponseSchema,
   passwordResetVerifyRequestSchema,
+  refreshTokenRequestSchema,
   registerRequestSchema
 } from '@health/shared';
 import { Hono } from 'hono';
 import { ZodError } from 'zod';
 
-import { loginUser, registerUser } from '../features/auth/auth.service.js';
+import {
+  loginUser,
+  logoutUser,
+  refreshAuthSession,
+  registerUser
+} from '../features/auth/auth.service.js';
 import { getBearerToken, verifyAccessToken } from '../features/auth/auth.token.js';
 import {
   completePasswordReset,
@@ -57,6 +63,38 @@ export const authRoute = new Hono()
 
       if (getErrorMessage(error) === 'Email is already registered') {
         return context.json({ message: 'Email is already registered' }, 409);
+      }
+
+      throw error;
+    }
+  })
+  .post('/auth/refresh', async (context) => {
+    try {
+      const payload = refreshTokenRequestSchema.parse(await context.req.json());
+      const result = await refreshAuthSession(payload);
+
+      return context.json(authResponseSchema.parse(result));
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return context.json({ message: 'Invalid refresh payload' }, 400);
+      }
+
+      if (getErrorMessage(error) === 'Invalid or expired refresh session') {
+        return context.json({ message: 'Invalid or expired refresh session' }, 401);
+      }
+
+      throw error;
+    }
+  })
+  .post('/auth/logout', async (context) => {
+    try {
+      const payload = refreshTokenRequestSchema.parse(await context.req.json());
+      await logoutUser(payload);
+
+      return context.json(authStatusResponseSchema.parse({ status: 'ok' }));
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return context.json({ message: 'Invalid logout payload' }, 400);
       }
 
       throw error;
