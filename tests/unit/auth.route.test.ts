@@ -5,9 +5,13 @@ const completePasswordResetMock = vi.fn();
 const requestPasswordResetMock = vi.fn();
 const verifyPasswordResetCodeMock = vi.fn();
 const registerUserMock = vi.fn();
+const refreshAuthSessionMock = vi.fn();
+const logoutUserMock = vi.fn();
 
 vi.mock('../../apps/api/src/features/auth/auth.service.js', () => ({
   loginUser: loginUserMock,
+  logoutUser: logoutUserMock,
+  refreshAuthSession: refreshAuthSessionMock,
   registerUser: registerUserMock
 }));
 
@@ -22,7 +26,9 @@ describe('auth route', () => {
     process.env.AUTH_TOKEN_SECRET = 'unit-test-auth-secret';
     completePasswordResetMock.mockReset();
     loginUserMock.mockReset();
+    logoutUserMock.mockReset();
     requestPasswordResetMock.mockReset();
+    refreshAuthSessionMock.mockReset();
     registerUserMock.mockReset();
     verifyPasswordResetCodeMock.mockReset();
   });
@@ -34,6 +40,7 @@ describe('auth route', () => {
   it('registers a user and returns an access token', async () => {
     registerUserMock.mockResolvedValue({
       accessToken: 'access-token',
+      refreshToken: 'refresh-token',
       user: {
         id: 'user-created',
         email: 'new@example.com'
@@ -57,6 +64,7 @@ describe('auth route', () => {
     expect(response.status).toBe(201);
     expect(data).toEqual({
       accessToken: 'access-token',
+      refreshToken: 'refresh-token',
       user: {
         id: 'user-created',
         email: 'new@example.com'
@@ -67,6 +75,7 @@ describe('auth route', () => {
   it('logs in a user and returns an access token', async () => {
     loginUserMock.mockResolvedValue({
       accessToken: 'access-token',
+      refreshToken: 'refresh-token',
       user: {
         id: 'user-primary',
         email: 'tanya@example.com'
@@ -88,6 +97,7 @@ describe('auth route', () => {
     expect(response.status).toBe(200);
     expect(data).toEqual({
       accessToken: 'access-token',
+      refreshToken: 'refresh-token',
       user: {
         id: 'user-primary',
         email: 'tanya@example.com'
@@ -126,6 +136,82 @@ describe('auth route', () => {
     expect(response.status).toBe(401);
     expect(data).toEqual({
       message: 'Current user is required'
+    });
+  });
+
+  it('refreshes a valid refresh session and returns rotated tokens', async () => {
+    refreshAuthSessionMock.mockResolvedValue({
+      accessToken: 'next-access-token',
+      refreshToken: 'next-refresh-token',
+      user: {
+        id: 'user-primary',
+        email: 'tanya@example.com'
+      }
+    });
+
+    const { createApp } = await import('../../apps/api/src/app/create-app.js');
+    const app = createApp();
+    const response = await app.request('http://localhost/api/v1/auth/refresh', {
+      method: 'POST',
+      headers: new Headers([['content-type', 'application/json']]),
+      body: JSON.stringify({
+        refreshToken: 'current-refresh-token'
+      })
+    });
+    const data: unknown = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data).toEqual({
+      accessToken: 'next-access-token',
+      refreshToken: 'next-refresh-token',
+      user: {
+        id: 'user-primary',
+        email: 'tanya@example.com'
+      }
+    });
+    expect(refreshAuthSessionMock).toHaveBeenCalledWith({
+      refreshToken: 'current-refresh-token'
+    });
+  });
+
+  it('rejects invalid refresh sessions with a readable error', async () => {
+    refreshAuthSessionMock.mockRejectedValue(new Error('Invalid or expired refresh session'));
+
+    const { createApp } = await import('../../apps/api/src/app/create-app.js');
+    const app = createApp();
+    const response = await app.request('http://localhost/api/v1/auth/refresh', {
+      method: 'POST',
+      headers: new Headers([['content-type', 'application/json']]),
+      body: JSON.stringify({
+        refreshToken: 'expired-refresh-token'
+      })
+    });
+    const data: unknown = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(data).toEqual({
+      message: 'Invalid or expired refresh session'
+    });
+  });
+
+  it('logs out by revoking the refresh session', async () => {
+    const { createApp } = await import('../../apps/api/src/app/create-app.js');
+    const app = createApp();
+    const response = await app.request('http://localhost/api/v1/auth/logout', {
+      method: 'POST',
+      headers: new Headers([['content-type', 'application/json']]),
+      body: JSON.stringify({
+        refreshToken: 'current-refresh-token'
+      })
+    });
+    const data: unknown = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data).toEqual({
+      status: 'ok'
+    });
+    expect(logoutUserMock).toHaveBeenCalledWith({
+      refreshToken: 'current-refresh-token'
     });
   });
 

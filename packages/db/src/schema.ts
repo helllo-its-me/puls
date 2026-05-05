@@ -38,6 +38,17 @@ export const passwordResetCodesTable = pgTable('password_reset_codes', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull()
 });
 
+export const refreshSessionsTable = pgTable('refresh_sessions', {
+  id: text('id').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => usersTable.id, { onDelete: 'cascade' }),
+  tokenHash: text('token_hash').notNull().unique(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull()
+});
+
 export const profileFocusAreasTable = pgTable('profile_focus_areas', {
   id: text('id').primaryKey(),
   profileId: text('profile_id')

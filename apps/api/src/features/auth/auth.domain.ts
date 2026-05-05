@@ -16,3 +16,18 @@ export type CreateUserWithProfileInput = {
   lastName: string;
   createdAt: Date;
 };
+
+export type CreateRefreshSessionInput = {
+  id: string;
+  userId: string;
+  tokenHash: string;
+  expiresAt: Date;
+  createdAt: Date;
+};
+
+export type ActiveRefreshSession = {
+  id: string;
+  userId: string;
+  email: string;
+  expiresAt: Date;
+};

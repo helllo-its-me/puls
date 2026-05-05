@@ -10,6 +10,7 @@ import type {
   passwordResetRequestSchema,
   passwordResetVerifyResponseSchema,
   passwordResetVerifyRequestSchema,
+  refreshTokenRequestSchema,
   registerRequestSchema
 } from './schemas';
 
@@ -23,3 +24,4 @@ export type AuthStatusResponse = z.infer<typeof authStatusResponseSchema>;
 export type AuthUser = z.infer<typeof authUserSchema>;
 export type AuthResponse = z.infer<typeof authResponseSchema>;
 export type AuthMeResponse = z.infer<typeof authMeResponseSchema>;
+export type RefreshTokenRequest = z.infer<typeof refreshTokenRequestSchema>;
