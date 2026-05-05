@@ -1,4 +1,5 @@
 import {
+  authMeResponseSchema,
   authResponseSchema,
   authStatusResponseSchema,
   loginRequestSchema,
@@ -12,6 +13,7 @@ import { Hono } from 'hono';
 import { ZodError } from 'zod';
 
 import { loginUser, registerUser } from '../features/auth/auth.service.js';
+import { getBearerToken, verifyAccessToken } from '../features/auth/auth.token.js';
 import {
   completePasswordReset,
   requestPasswordReset,
@@ -27,6 +29,21 @@ function getErrorMessage(error: unknown): string {
 }
 
 export const authRoute = new Hono()
+  .get('/auth/me', async (context) => {
+    const token = getBearerToken(context.req.header('authorization'));
+    const currentUser = token ? verifyAccessToken(token) : null;
+
+    if (!currentUser) {
+      return context.json({ message: 'Current user is required' }, 401);
+    }
+
+    return context.json(authMeResponseSchema.parse({
+      user: {
+        id: currentUser.sub,
+        email: currentUser.email
+      }
+    }));
+  })
   .post('/auth/register', async (context) => {
     try {
       const payload = registerRequestSchema.parse(await context.req.json());

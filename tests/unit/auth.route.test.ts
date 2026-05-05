@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const loginUserMock = vi.fn();
 const completePasswordResetMock = vi.fn();
@@ -19,11 +19,16 @@ vi.mock('../../apps/api/src/features/auth/password-reset.service.js', () => ({
 
 describe('auth route', () => {
   beforeEach(() => {
+    process.env.AUTH_TOKEN_SECRET = 'unit-test-auth-secret';
     completePasswordResetMock.mockReset();
     loginUserMock.mockReset();
     requestPasswordResetMock.mockReset();
     registerUserMock.mockReset();
     verifyPasswordResetCodeMock.mockReset();
+  });
+
+  afterEach(() => {
+    delete process.env.AUTH_TOKEN_SECRET;
   });
 
   it('registers a user and returns an access token', async () => {
@@ -87,6 +92,40 @@ describe('auth route', () => {
         id: 'user-primary',
         email: 'tanya@example.com'
       }
+    });
+  });
+
+  it('returns the current user for a valid bearer token', async () => {
+    const { createAccessToken } = await import('../../apps/api/src/features/auth/auth.token.js');
+    const { createApp } = await import('../../apps/api/src/app/create-app.js');
+    const app = createApp();
+    const token = createAccessToken({
+      id: 'user-primary',
+      email: 'tanya@example.com'
+    });
+    const response = await app.request('http://localhost/api/v1/auth/me', {
+      headers: new Headers([['authorization', `Bearer ${token}`]])
+    });
+    const data: unknown = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data).toEqual({
+      user: {
+        id: 'user-primary',
+        email: 'tanya@example.com'
+      }
+    });
+  });
+
+  it('rejects current user requests without a valid bearer token', async () => {
+    const { createApp } = await import('../../apps/api/src/app/create-app.js');
+    const app = createApp();
+    const response = await app.request('http://localhost/api/v1/auth/me');
+    const data: unknown = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(data).toEqual({
+      message: 'Current user is required'
     });
   });
 

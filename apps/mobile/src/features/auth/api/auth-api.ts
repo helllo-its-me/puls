@@ -1,4 +1,5 @@
 import {
+  authMeResponseSchema,
   authStatusResponseSchema,
   authResponseSchema,
   passwordResetVerifyResponseSchema,
@@ -9,7 +10,7 @@ import {
   type RegisterRequest
 } from '@health/shared';
 
-import { apiPost } from '@/lib/api/client';
+import { apiGet, apiPost } from '@/lib/api/client';
 
 export function register(input: RegisterRequest) {
   return apiPost('/auth/register', input, authResponseSchema);
@@ -17,6 +18,10 @@ export function register(input: RegisterRequest) {
 
 export function login(input: LoginRequest) {
   return apiPost('/auth/login', input, authResponseSchema);
+}
+
+export function getCurrentUser(accessToken: string) {
+  return apiGet('/auth/me', authMeResponseSchema, accessToken);
 }
 
 export function requestPasswordReset(input: PasswordResetRequest) {

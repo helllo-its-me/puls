@@ -51,3 +51,7 @@ export const authResponseSchema = z.object({
   accessToken: z.string().min(1),
   user: authUserSchema
 });
+
+export const authMeResponseSchema = z.object({
+  user: authUserSchema
+});

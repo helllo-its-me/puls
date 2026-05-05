@@ -2,12 +2,17 @@ import type { AuthResponse, LoginRequest, RegisterRequest } from '@health/shared
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createContext, PropsWithChildren, useContext, useEffect, useMemo, useState } from 'react';
 
-import { login as loginRequest, register as registerRequest } from '@/features/auth/api/auth-api';
+import {
+  getCurrentUser,
+  login as loginRequest,
+  register as registerRequest
+} from '@/features/auth/api/auth-api';
 import {
   clearAuthSession,
   loadAuthSession,
   saveAuthSession
 } from '@/features/auth/model/auth-storage';
+import { ApiError } from '@/lib/api/api-error';
 
 type AuthContextValue = {
   session: AuthResponse | null;
@@ -19,6 +24,10 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+function shouldClearStoredSession(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 401;
+}
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const queryClient = useQueryClient();
@@ -44,19 +53,52 @@ export function AuthProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     let isMounted = true;
 
-    void loadAuthSession().then((storedSession) => {
-      if (!isMounted) {
+    async function restoreSession() {
+      const storedSession = await loadAuthSession();
+
+      if (!storedSession) {
+        if (isMounted) {
+          setIsLoading(false);
+        }
         return;
       }
 
-      setSession(storedSession);
-      setIsLoading(false);
-    });
+      try {
+        const currentUser = await getCurrentUser(storedSession.accessToken);
+        const verifiedSession: AuthResponse = {
+          accessToken: storedSession.accessToken,
+          user: currentUser.user
+        };
+
+        await saveAuthSession(verifiedSession);
+
+        if (isMounted) {
+          setSession(verifiedSession);
+        }
+      } catch (error) {
+        if (shouldClearStoredSession(error)) {
+          await clearAuthSession();
+          queryClient.removeQueries({ queryKey: ['profile'] });
+
+          if (isMounted) {
+            setSession(null);
+          }
+        } else if (isMounted) {
+          setSession(storedSession);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void restoreSession();
 
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [queryClient]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
