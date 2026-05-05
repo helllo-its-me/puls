@@ -2,6 +2,7 @@ import type { z } from 'zod';
 
 import type {
   authStatusResponseSchema,
+  authMeResponseSchema,
   authResponseSchema,
   authUserSchema,
   loginRequestSchema,
@@ -21,3 +22,4 @@ export type PasswordResetCompleteRequest = z.infer<typeof passwordResetCompleteR
 export type AuthStatusResponse = z.infer<typeof authStatusResponseSchema>;
 export type AuthUser = z.infer<typeof authUserSchema>;
 export type AuthResponse = z.infer<typeof authResponseSchema>;
+export type AuthMeResponse = z.infer<typeof authMeResponseSchema>;

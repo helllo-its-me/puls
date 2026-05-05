@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider } from '@/features/auth/AuthProvider';
 import { LocalizationProvider } from '@/i18n/LocalizationProvider';
+import { ApiError } from '@/lib/api/api-error';
 
 export function AppProviders({ children }: PropsWithChildren) {
   const [queryClient] = useState<QueryClient>(
@@ -11,7 +12,13 @@ export function AppProviders({ children }: PropsWithChildren) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            retry: 1
+            retry: (failureCount, error) => {
+              if (error instanceof ApiError && error.status === 401) {
+                return false;
+              }
+
+              return failureCount < 1;
+            }
           }
         }
       })

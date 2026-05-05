@@ -1,10 +1,38 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authResponseSchema, type AuthResponse } from '@health/shared';
+import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 const authSessionStorageKey = 'auth-session';
 
+async function getStoredSessionValue(): Promise<string | null> {
+  if (Platform.OS === 'web') {
+    return AsyncStorage.getItem(authSessionStorageKey);
+  }
+
+  return SecureStore.getItemAsync(authSessionStorageKey);
+}
+
+async function setStoredSessionValue(value: string): Promise<void> {
+  if (Platform.OS === 'web') {
+    await AsyncStorage.setItem(authSessionStorageKey, value);
+    return;
+  }
+
+  await SecureStore.setItemAsync(authSessionStorageKey, value);
+}
+
+async function removeStoredSessionValue(): Promise<void> {
+  if (Platform.OS === 'web') {
+    await AsyncStorage.removeItem(authSessionStorageKey);
+    return;
+  }
+
+  await SecureStore.deleteItemAsync(authSessionStorageKey);
+}
+
 export async function loadAuthSession(): Promise<AuthResponse | null> {
-  const storedValue = await AsyncStorage.getItem(authSessionStorageKey);
+  const storedValue = await getStoredSessionValue();
 
   if (!storedValue) {
     return null;
@@ -21,9 +49,9 @@ export async function loadAuthSession(): Promise<AuthResponse | null> {
 }
 
 export async function saveAuthSession(session: AuthResponse): Promise<void> {
-  await AsyncStorage.setItem(authSessionStorageKey, JSON.stringify(session));
+  await setStoredSessionValue(JSON.stringify(session));
 }
 
 export async function clearAuthSession(): Promise<void> {
-  await AsyncStorage.removeItem(authSessionStorageKey);
+  await removeStoredSessionValue();
 }
