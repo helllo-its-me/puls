@@ -1,4 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
+import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
@@ -48,6 +49,7 @@ function ProfileErrorState({ onRetry }: ProfileErrorStateProps) {
 
 export function ProfileScreen() {
   const auth = useAuth();
+  const router = useRouter();
   const profileQuery = useProfileQuery();
   const { locale, setLocale, t } = useTranslation();
 
@@ -81,6 +83,11 @@ export function ProfileScreen() {
             />
           </View>
           <AppText variant="title">{t('profile.screen.title')}</AppText>
+          <Button
+            label={t('profile.edit.open')}
+            variant="secondary"
+            onPress={() => router.push('/profile/edit')}
+          />
           <Button
             label={t('auth.logout')}
             variant="secondary"

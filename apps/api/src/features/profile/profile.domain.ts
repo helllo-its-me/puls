@@ -1,8 +1,14 @@
+import type { ProfileGender, UpdateProfileRequest } from '@health/shared';
+
 export type Profile = {
   id: string;
   userId: string;
   firstName: string;
   lastName: string;
+  birthDate: string | null;
+  heightCm: number | null;
+  weightKg: number | null;
+  gender: ProfileGender | null;
   membershipTier: string;
   planTitle: string;
   joinedAt: Date;
@@ -45,3 +51,5 @@ export type ProfileAggregate = {
   highlights: ProfileHighlight[];
   quickActions: ProfileQuickAction[];
 };
+
+export type UpdateProfileInput = UpdateProfileRequest;

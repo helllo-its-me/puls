@@ -1,7 +1,10 @@
-import type { ProfileResponse } from '@health/shared';
+import type { ProfileResponse, UpdateProfileRequest } from '@health/shared';
 
 import type { ProfileAggregate } from './profile.domain.js';
-import { getProfileByUserId as getProfileAggregateByUserId } from './profile.repository.js';
+import {
+  getProfileByUserId as getProfileAggregateByUserId,
+  updateProfileByUserId as updateProfileAggregateByUserId
+} from './profile.repository.js';
 
 function getAccent(
   accent: string
@@ -19,7 +22,12 @@ export function mapProfileAggregateToResponse(profileAggregate: ProfileAggregate
   return {
     id: profile.id,
     firstName: profile.firstName,
+    lastName: profile.lastName,
     fullName: `${profile.firstName} ${profile.lastName}`,
+    birthDate: profile.birthDate,
+    heightCm: profile.heightCm,
+    weightKg: profile.weightKg,
+    gender: profile.gender,
     membershipTier: profile.membershipTier,
     planTitle: profile.planTitle,
     joinedAt: profile.joinedAt.toISOString(),
@@ -50,6 +58,19 @@ export function mapProfileAggregateToResponse(profileAggregate: ProfileAggregate
 
 export async function getProfileByUserId(userId: string): Promise<ProfileResponse | null> {
   const profileAggregate = await getProfileAggregateByUserId(userId);
+
+  if (!profileAggregate) {
+    return null;
+  }
+
+  return mapProfileAggregateToResponse(profileAggregate);
+}
+
+export async function updateProfileByUserId(
+  userId: string,
+  input: UpdateProfileRequest
+): Promise<ProfileResponse | null> {
+  const profileAggregate = await updateProfileAggregateByUserId(userId, input);
 
   if (!profileAggregate) {
     return null;

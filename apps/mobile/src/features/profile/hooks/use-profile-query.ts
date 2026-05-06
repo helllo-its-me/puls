@@ -6,11 +6,11 @@ import { getProfile } from '@/features/profile/api/get-profile';
 import { buildProfileScreenViewData } from '@/features/profile/model/profile-screen-view';
 import { ApiError } from '@/lib/api/api-error';
 
-export function useProfileQuery() {
+function useProfileRequest() {
   const { accessToken, refreshSession } = useAuth();
-  const { locale, t } = useTranslation();
 
-  return useQuery({
+  return {
+    accessToken,
     queryKey: ['profile', accessToken],
     queryFn: async () => {
       if (!accessToken) {
@@ -33,7 +33,19 @@ export function useProfileQuery() {
         return getProfile(nextSession.accessToken);
       }
     },
-    enabled: Boolean(accessToken),
+    enabled: Boolean(accessToken)
+  };
+}
+
+export function useProfileDataQuery() {
+  return useQuery(useProfileRequest());
+}
+
+export function useProfileQuery() {
+  const { locale, t } = useTranslation();
+
+  return useQuery({
+    ...useProfileRequest(),
     select: (profile) => buildProfileScreenViewData(profile, { locale, t })
   });
 }

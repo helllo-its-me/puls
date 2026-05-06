@@ -5,9 +5,29 @@ import {
   profileQuickActionsTable,
   profilesTable
 } from '@health/db';
+import type { ProfileGender } from '@health/shared';
 import { asc, eq } from 'drizzle-orm';
 
-import type { ProfileAggregate, ProfileFocusArea, ProfileHighlight, ProfileQuickAction } from './profile.domain.js';
+import type {
+  ProfileAggregate,
+  ProfileFocusArea,
+  ProfileHighlight,
+  ProfileQuickAction,
+  UpdateProfileInput
+} from './profile.domain.js';
+
+function getProfileGender(value: string | null): ProfileGender | null {
+  if (
+    value === 'female' ||
+    value === 'male' ||
+    value === 'other' ||
+    value === 'prefer_not_to_say'
+  ) {
+    return value;
+  }
+
+  return null;
+}
 
 function mapFocusAreaRecord(
   focusArea: typeof profileFocusAreasTable.$inferSelect
@@ -83,6 +103,10 @@ export async function getProfileByUserId(userId: string): Promise<ProfileAggrega
       userId: profile.userId,
       firstName: profile.firstName,
       lastName: profile.lastName,
+      birthDate: profile.birthDate,
+      heightCm: profile.heightCm,
+      weightKg: profile.weightKg,
+      gender: getProfileGender(profile.gender),
       membershipTier: profile.membershipTier,
       planTitle: profile.planTitle,
       joinedAt: profile.joinedAt,
@@ -97,4 +121,28 @@ export async function getProfileByUserId(userId: string): Promise<ProfileAggrega
     highlights: highlights.map(mapHighlightRecord),
     quickActions: quickActions.map(mapQuickActionRecord)
   };
+}
+
+export async function updateProfileByUserId(
+  userId: string,
+  input: UpdateProfileInput
+): Promise<ProfileAggregate | null> {
+  const rows = await db
+    .update(profilesTable)
+    .set({
+      firstName: input.firstName,
+      lastName: input.lastName,
+      birthDate: input.birthDate,
+      heightCm: input.heightCm,
+      weightKg: input.weightKg,
+      gender: input.gender
+    })
+    .where(eq(profilesTable.userId, userId))
+    .returning({ id: profilesTable.id });
+
+  if (!rows[0]) {
+    return null;
+  }
+
+  return getProfileByUserId(userId);
 }
