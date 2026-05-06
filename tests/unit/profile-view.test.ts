@@ -55,6 +55,49 @@ describe('profile view model', () => {
     expect(viewData.quickActions.map((action) => action.tone)).toEqual(['mint', 'sky', 'lavender']);
     expect(viewData.quickActions[0]?.label).toBe('Open my plan');
     expect(viewData.quickActions[0]?.description).toBe('See the full schedule, habits and progress checkpoints.');
+    expect(viewData.bmi).toEqual({
+      title: 'Body mass index',
+      value: '20.5',
+      label: 'Healthy range',
+      description: 'Based on your saved height and weight.',
+      tone: 'ok'
+    });
+  });
+
+  it('builds an empty BMI state when height or weight is missing', () => {
+    const viewData = buildProfileScreenViewData({
+      ...profileResponseFixture,
+      heightCm: null,
+      weightKg: 58
+    }, {
+      locale: 'en',
+      t: createTranslator('en')
+    });
+
+    expect(viewData.bmi).toEqual({
+      title: 'Body mass index',
+      value: '--',
+      label: 'Add height and weight',
+      description: 'Add both values to calculate your BMI.',
+      tone: 'empty'
+    });
+  });
+
+  it('marks a high BMI with a high attention tone', () => {
+    const viewData = buildProfileScreenViewData({
+      ...profileResponseFixture,
+      heightCm: 165,
+      weightKg: 84
+    }, {
+      locale: 'en',
+      t: createTranslator('en')
+    });
+
+    expect(viewData.bmi).toMatchObject({
+      value: '30.9',
+      label: 'High BMI',
+      tone: 'high'
+    });
   });
 
   it('builds russian localized labels for the screen', () => {
@@ -75,5 +118,9 @@ describe('profile view model', () => {
     expect(viewData.highlights[0]?.title).toBe('Ваш ритм становится стабильнее');
     expect(viewData.quickActions[0]?.label).toBe('Открыть мой план');
     expect(viewData.quickActions[0]?.description).toBe('Посмотрите полное расписание, привычки и контрольные точки прогресса.');
+    expect(viewData.bmi).toMatchObject({
+      title: 'Индекс массы тела',
+      label: 'Здоровый диапазон'
+    });
   });
 });

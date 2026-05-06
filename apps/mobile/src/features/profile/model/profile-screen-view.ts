@@ -6,6 +6,7 @@ import type { TranslationKey } from '@/i18n/dictionaries';
 import type { Translate } from '@/i18n/translation';
 
 type AccentTone = 'mint' | 'sky' | 'lavender';
+type BmiTone = 'empty' | 'ok' | 'attention' | 'high';
 
 export type ProfileHeroStatViewData = {
   id: string;
@@ -28,6 +29,14 @@ export type ProfileSummaryViewData = {
   title: string;
   consistencyLabel: string;
   supportLevel: string;
+};
+
+export type ProfileBmiViewData = {
+  title: string;
+  value: string;
+  label: string;
+  description: string;
+  tone: BmiTone;
 };
 
 export type ProfileFocusAreaItemViewData = {
@@ -54,6 +63,7 @@ export type ProfileQuickActionViewData = {
 export type ProfileScreenViewData = {
   hero: ProfileHeroViewData;
   summary: ProfileSummaryViewData;
+  bmi: ProfileBmiViewData;
   focusAreas: ProfileFocusAreaItemViewData[];
   highlights: ProfileHighlightViewData[];
   quickActions: ProfileQuickActionViewData[];
@@ -250,6 +260,58 @@ function buildHeroStats(
   ];
 }
 
+function getBmiTone(value: number): Exclude<BmiTone, 'empty'> {
+  if (value >= 30) {
+    return 'high';
+  }
+
+  if (value < 18.5 || value >= 25) {
+    return 'attention';
+  }
+
+  return 'ok';
+}
+
+function getBmiLabelKey(tone: BmiTone): TranslationKey {
+  if (tone === 'ok') {
+    return 'profile.bmi.label.ok';
+  }
+
+  if (tone === 'attention') {
+    return 'profile.bmi.label.attention';
+  }
+
+  if (tone === 'high') {
+    return 'profile.bmi.label.high';
+  }
+
+  return 'profile.bmi.label.empty';
+}
+
+function buildBmiViewData(profile: ProfileResponse, t: Translate): ProfileBmiViewData {
+  if (!profile.heightCm || !profile.weightKg) {
+    return {
+      title: t('profile.bmi.title'),
+      value: '--',
+      label: t('profile.bmi.label.empty'),
+      description: t('profile.bmi.description.empty'),
+      tone: 'empty'
+    };
+  }
+
+  const heightM = profile.heightCm / 100;
+  const bmiValue = profile.weightKg / (heightM * heightM);
+  const tone = getBmiTone(bmiValue);
+
+  return {
+    title: t('profile.bmi.title'),
+    value: bmiValue.toFixed(1),
+    label: t(getBmiLabelKey(tone)),
+    description: t('profile.bmi.description.ready'),
+    tone
+  };
+}
+
 type BuildProfileScreenViewDataOptions = {
   locale: AppLocale;
   t: Translate;
@@ -294,6 +356,7 @@ export function buildProfileScreenViewData(
         t
       )
     },
+    bmi: buildBmiViewData(profile, t),
     focusAreas: profile.focusAreas.map((focusArea, index) => {
       const translationSet = getFocusAreaTranslationSet(focusArea.id);
 
