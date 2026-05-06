@@ -258,6 +258,9 @@ test('edits profile details on a separate page', async ({ page }) => {
 
   expect(updateResponse.status(), updateResponse.url()).toBe(200);
   await expect(page.getByText('Tata, your profile').last()).toBeVisible();
+  await expect(page.getByText('Body mass index').last()).toBeVisible();
+  await expect(page.getByText('20.4').last()).toBeVisible();
+  await expect(page.getByText('Healthy range').last()).toBeVisible();
 });
 
 test('refreshes the auth session after an expired profile access token', async ({ page }) => {

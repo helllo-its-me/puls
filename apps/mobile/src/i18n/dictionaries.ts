@@ -123,6 +123,13 @@ export const enTranslations = {
   'profile.hero.stat.energy': 'Energy',
   'profile.hero.daysSuffix': 'days',
   'profile.summary.title': 'Profile completion is strong',
+  'profile.bmi.title': 'Body mass index',
+  'profile.bmi.description.ready': 'Based on your saved height and weight.',
+  'profile.bmi.description.empty': 'Add both values to calculate your BMI.',
+  'profile.bmi.label.empty': 'Add height and weight',
+  'profile.bmi.label.ok': 'Healthy range',
+  'profile.bmi.label.attention': 'Needs attention',
+  'profile.bmi.label.high': 'High BMI',
   'profile.quickAction.unavailable': 'Action flow will be connected in the next slice.'
 } as const;
 
@@ -254,5 +261,12 @@ export const ruTranslations: TranslationDictionary = {
   'profile.hero.stat.energy': 'Энергия',
   'profile.hero.daysSuffix': 'дней',
   'profile.summary.title': 'Профиль заполнен хорошо',
+  'profile.bmi.title': 'Индекс массы тела',
+  'profile.bmi.description.ready': 'На основе сохраненных роста и веса.',
+  'profile.bmi.description.empty': 'Добавьте рост и вес, чтобы рассчитать ИМТ.',
+  'profile.bmi.label.empty': 'Добавьте рост и вес',
+  'profile.bmi.label.ok': 'Здоровый диапазон',
+  'profile.bmi.label.attention': 'Требует внимания',
+  'profile.bmi.label.high': 'Высокий ИМТ',
   'profile.quickAction.unavailable': 'Сценарий действия будет подключен в следующем шаге.'
 };

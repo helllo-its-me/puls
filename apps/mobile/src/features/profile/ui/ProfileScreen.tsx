@@ -9,6 +9,7 @@ import { useTranslation } from '@/i18n/LocalizationProvider';
 import { LocaleSwitcher } from '@/i18n/ui/LocaleSwitcher';
 import { ApiError } from '@/lib/api/api-error';
 import { ProfileFocusAreaList } from '@/features/profile/ui/ProfileFocusAreaList';
+import { ProfileBmiCard } from '@/features/profile/ui/ProfileBmiCard';
 import { ProfileHero } from '@/features/profile/ui/ProfileHero';
 import { ProfileHighlights } from '@/features/profile/ui/ProfileHighlights';
 import { ProfileQuickActions } from '@/features/profile/ui/ProfileQuickActions';
@@ -102,6 +103,7 @@ export function ProfileScreen() {
           <View style={styles.sections}>
             <ProfileHero hero={profileQuery.data.hero} />
             <ProfileSummaryCard summary={profileQuery.data.summary} />
+            <ProfileBmiCard bmi={profileQuery.data.bmi} />
             <View style={styles.section}>
               <ProfileSectionHeader
                 title={t('profile.section.focus.title')}
