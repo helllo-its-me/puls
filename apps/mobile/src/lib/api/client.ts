@@ -63,3 +63,21 @@ export async function apiPost<TSchema extends z.ZodType>(
 
   return parseResponse(response, schema);
 }
+
+export async function apiPatch<TSchema extends z.ZodType>(
+  path: string,
+  body: unknown,
+  schema: TSchema,
+  accessToken: string
+): Promise<z.infer<TSchema>> {
+  const response = await fetch(`${env.apiBaseUrl}${path}`, {
+    method: 'PATCH',
+    headers: {
+      ...buildHeaders(accessToken),
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+
+  return parseResponse(response, schema);
+}

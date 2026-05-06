@@ -7,6 +7,7 @@ export default function RootLayout() {
     <AppProviders>
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="profile/edit" options={{ headerShown: false }} />
       </Stack>
     </AppProviders>
   );

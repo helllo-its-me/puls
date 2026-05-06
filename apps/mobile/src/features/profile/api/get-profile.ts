@@ -1,7 +1,11 @@
-import { profileResponseSchema } from '@health/shared';
+import { profileResponseSchema, type UpdateProfileRequest } from '@health/shared';
 
-import { apiGet } from '@/lib/api/client';
+import { apiGet, apiPatch } from '@/lib/api/client';
 
 export function getProfile(accessToken: string) {
   return apiGet('/profile', profileResponseSchema, accessToken);
+}
+
+export function updateProfile(input: UpdateProfileRequest, accessToken: string) {
+  return apiPatch('/profile', input, profileResponseSchema, accessToken);
 }

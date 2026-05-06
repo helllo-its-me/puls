@@ -235,6 +235,31 @@ test('registers and renders the profile screen with live API data', async ({ pag
   await expect(page.getByText('Quick actions')).toBeVisible();
 });
 
+test('edits profile details on a separate page', async ({ page }) => {
+  await registerThroughForm(page, `edit-${Date.now()}@example.com`);
+
+  await page.getByText('Edit profile').click();
+
+  await expect(page.getByText('Profile details', { exact: true })).toBeVisible();
+  await expect(page.getByText('Tune the basics that shape your care.')).toBeVisible();
+
+  await page.getByPlaceholder('First name').fill('Tata');
+  await page.getByPlaceholder('Last name').fill('Vorobeva');
+  await page.getByPlaceholder('DD.MM.YYYY').fill('20.05.1991');
+  await page.getByPlaceholder('Height, cm').fill('170');
+  await page.getByPlaceholder('Weight, kg').fill('59');
+  await page.getByText('Female').click();
+
+  const updateResponsePromise = page.waitForResponse((response) =>
+    response.url().includes('/profile') && response.request().method() === 'PATCH'
+  );
+  await page.getByText('Save changes').click();
+  const updateResponse = await updateResponsePromise;
+
+  expect(updateResponse.status(), updateResponse.url()).toBe(200);
+  await expect(page.getByText('Tata, your profile').last()).toBeVisible();
+});
+
 test('refreshes the auth session after an expired profile access token', async ({ page }) => {
   let profileRequestCount = 0;
   let refreshRequestCount = 0;
