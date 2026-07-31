@@ -5,9 +5,8 @@ import { AppProviders } from '@/providers/AppProviders';
 export default function RootLayout() {
   return (
     <AppProviders>
-      <Stack>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="profile/edit" options={{ headerShown: false }} />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(session)" />
       </Stack>
     </AppProviders>
   );

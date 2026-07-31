@@ -1,10 +1,7 @@
-import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
-import { useAuth } from '@/features/auth/AuthProvider';
-import { AuthScreen } from '@/features/auth/ui/AuthScreen';
 import { useProfileDataQuery } from '@/features/profile/hooks/use-profile-query';
 import { useUpdateProfileMutation } from '@/features/profile/hooks/use-update-profile-mutation';
 import {
@@ -57,9 +54,12 @@ function ProfileEditErrorState({ onRetry }: ProfileEditErrorStateProps) {
   );
 }
 
-export function ProfileEditScreen() {
-  const auth = useAuth();
-  const router = useRouter();
+type ProfileEditScreenProps = {
+  onCancel: () => void;
+  onSaved: () => void;
+};
+
+export function ProfileEditScreen({ onCancel, onSaved }: ProfileEditScreenProps) {
   const profileQuery = useProfileDataQuery();
   const updateProfileMutation = useUpdateProfileMutation();
   const { t } = useTranslation();
@@ -74,18 +74,6 @@ export function ProfileEditScreen() {
     setValues(buildInitialProfileEditFormValues(profileQuery.data));
   }, [profileQuery.data]);
 
-  if (auth.isLoading) {
-    return (
-      <Screen>
-        <ProfileEditLoadingState />
-      </Screen>
-    );
-  }
-
-  if (!auth.session) {
-    return <AuthScreen />;
-  }
-
   async function handleSubmit() {
     setErrorMessage(null);
 
@@ -98,7 +86,7 @@ export function ProfileEditScreen() {
 
     try {
       await updateProfileMutation.mutateAsync(result.payload);
-      router.replace('/');
+      onSaved();
     } catch (error) {
       if (error instanceof ApiError) {
         setErrorMessage(error.message);
@@ -149,7 +137,7 @@ export function ProfileEditScreen() {
             <Button
               label={t('profile.edit.cancel')}
               variant="secondary"
-              onPress={() => router.back()}
+              onPress={onCancel}
             />
           </ProfileSurfaceCard>
         ) : null}

@@ -5,19 +5,7 @@ import { profileResponseFixture } from '../fixtures/profile';
 
 const millisecondsPerSecond = 1000;
 
-async function routeApiToTestServer(page: Page) {
-  await page.route('**/api/v1/**', async (route) => {
-    const requestUrl = new URL(route.request().url());
-    requestUrl.host = '127.0.0.1:3100';
-
-    await route.continue({
-      url: requestUrl.toString()
-    });
-  });
-}
-
 async function registerThroughForm(page: Page, email: string) {
-  await routeApiToTestServer(page);
   await page.goto('/');
 
   await page.getByText('Create one').click();
@@ -32,10 +20,15 @@ async function registerThroughForm(page: Page, email: string) {
   const registrationResponse = await registrationResponsePromise;
 
   expect(registrationResponse.status(), registrationResponse.url()).toBe(201);
+  await expect(page).toHaveURL(/\/dashboard$/);
+}
+
+async function openProfileTab(page: Page) {
+  await page.getByRole('tab', { name: 'Profile' }).click();
+  await expect(page).toHaveURL(/\/profile$/);
 }
 
 test('opens the login screen first', async ({ page }) => {
-  await routeApiToTestServer(page);
   await page.goto('/');
 
   await expect(page.getByText('Welcome back')).toBeVisible();
@@ -43,8 +36,14 @@ test('opens the login screen first', async ({ page }) => {
   await expect(page.getByText('Need an account?')).toBeVisible();
 });
 
+test('redirects an unauthenticated protected link to Auth', async ({ page }) => {
+  await page.goto('/profile');
+
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByText('Welcome back')).toBeVisible();
+});
+
 test('shows a readable validation error when login fields are empty', async ({ page }) => {
-  await routeApiToTestServer(page);
   await page.goto('/');
 
   await page.getByText('Log in').last().click();
@@ -53,7 +52,6 @@ test('shows a readable validation error when login fields are empty', async ({ p
 });
 
 test('shows a readable error when login credentials are invalid', async ({ page }) => {
-  await routeApiToTestServer(page);
   await page.goto('/');
 
   await page.getByPlaceholder('Email').fill('missing@example.com');
@@ -64,7 +62,6 @@ test('shows a readable error when login credentials are invalid', async ({ page 
 });
 
 test('shows a readable registration error when email is invalid', async ({ page }) => {
-  await routeApiToTestServer(page);
   await page.goto('/');
 
   await page.getByText('Create one').click();
@@ -78,7 +75,6 @@ test('shows a readable registration error when email is invalid', async ({ page 
 });
 
 test('shows a readable registration error when password is too short', async ({ page }) => {
-  await routeApiToTestServer(page);
   await page.goto('/');
 
   await page.getByText('Create one').click();
@@ -108,7 +104,6 @@ test('shows a readable registration error when API is unreachable', async ({ pag
 });
 
 test('toggles password visibility on the auth form', async ({ page }) => {
-  await routeApiToTestServer(page);
   await page.goto('/');
 
   const passwordField = page.getByPlaceholder('Password');
@@ -213,7 +208,6 @@ test('keeps password reset steps locked until email and code are verified', asyn
 });
 
 test('switches language from the login screen before authentication', async ({ page }) => {
-  await routeApiToTestServer(page);
   await page.goto('/');
 
   await page.getByText('RU', { exact: true }).click();
@@ -227,17 +221,39 @@ test('switches language from the login screen before authentication', async ({ p
   await expect(page.getByText('Создайте аккаунт')).toBeVisible();
 });
 
-test('registers and renders the profile screen with live API data', async ({ page }) => {
+test('opens Dashboard after registration and navigates from Home to Profile', async ({ page }) => {
   await registerThroughForm(page, `profile-${Date.now()}@example.com`);
 
+  await expect(page.getByText('Dashboard', { exact: true })).toBeVisible();
+  await openProfileTab(page);
   await expect(page.getByText('Test, your profile')).toBeVisible();
   await expect(page.getByText('Focus right now')).toBeVisible();
   await expect(page.getByText('Quick actions')).toBeVisible();
 });
 
+test('restores a saved session on cold start and opens Dashboard', async ({ page }) => {
+  await registerThroughForm(page, `cold-start-${Date.now()}@example.com`);
+
+  await page.goto('/');
+
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page.getByText('Dashboard', { exact: true })).toBeVisible();
+});
+
+test('keeps an authenticated Profile deep link after reload', async ({ page }) => {
+  await registerThroughForm(page, `profile-deep-link-${Date.now()}@example.com`);
+  await openProfileTab(page);
+
+  await page.reload();
+
+  await expect(page).toHaveURL(/\/profile$/);
+  await expect(page.getByText('Test, your profile')).toBeVisible();
+});
+
 test('edits profile details on a separate page', async ({ page }) => {
   await registerThroughForm(page, `edit-${Date.now()}@example.com`);
 
+  await openProfileTab(page);
   await page.getByText('Edit profile').click();
 
   await expect(page.getByText('Profile details', { exact: true })).toBeVisible();
@@ -257,10 +273,39 @@ test('edits profile details on a separate page', async ({ page }) => {
   const updateResponse = await updateResponsePromise;
 
   expect(updateResponse.status(), updateResponse.url()).toBe(200);
+  await expect(page).toHaveURL(/\/profile$/);
   await expect(page.getByText('Tata, your profile').last()).toBeVisible();
   await expect(page.getByText('Body mass index').last()).toBeVisible();
   await expect(page.getByText('20.4').last()).toBeVisible();
   await expect(page.getByText('Healthy range').last()).toBeVisible();
+
+  await page.goBack();
+
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page.getByText('Dashboard', { exact: true })).toBeVisible();
+});
+
+test('returns from profile editing without adding an edit history entry', async ({ page }) => {
+  await registerThroughForm(page, `edit-cancel-${Date.now()}@example.com`);
+
+  await openProfileTab(page);
+  await page.getByText('Edit profile').click();
+  await page.getByText('Cancel').click();
+
+  await expect(page).toHaveURL(/\/profile$/);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/dashboard$/);
+});
+
+test('returns a direct Edit Profile route to Profile on cancel', async ({ page }) => {
+  await registerThroughForm(page, `edit-direct-${Date.now()}@example.com`);
+
+  await page.goto('/profile/edit');
+  await expect(page.getByText('Profile details', { exact: true })).toBeVisible();
+  await page.getByText('Cancel').click();
+
+  await expect(page).toHaveURL(/\/profile$/);
+  await expect(page.getByText('Test, your profile')).toBeVisible();
 });
 
 test('refreshes the auth session after an expired profile access token', async ({ page }) => {
@@ -346,6 +391,8 @@ test('refreshes the auth session after an expired profile access token', async (
   await page.getByPlaceholder('Password').fill('strong-password');
   await page.getByText('Create account').click();
 
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await openProfileTab(page);
   await expect(page.getByText('Refresh, your profile')).toBeVisible();
   await expect.poll(() => refreshRequestCount).toBe(1);
   await expect.poll(() => profileRequestCount).toBe(2);
@@ -354,19 +401,50 @@ test('refreshes the auth session after an expired profile access token', async (
 test('switches profile interface and system content to russian', async ({ page }) => {
   await registerThroughForm(page, `russian-${Date.now()}@example.com`);
 
+  await openProfileTab(page);
   await page.getByText('RU', { exact: true }).click();
 
-  await expect(page.getByText('Профиль', { exact: true })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Профиль' })).toBeVisible();
   await expect(page.getByText('В фокусе сейчас')).toBeVisible();
   await expect(page.getByText('Быстрые действия')).toBeVisible();
+
+  await page.getByRole('tab', { name: 'Главная' }).click();
+
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page.getByText('Главная', { exact: true })).toHaveCount(2);
 });
 
 test('persists selected language after reload', async ({ page }) => {
   await registerThroughForm(page, `locale-${Date.now()}@example.com`);
 
+  await openProfileTab(page);
   await page.getByText('RU', { exact: true }).click();
   await page.reload();
 
-  await expect(page.getByText('Профиль', { exact: true })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Профиль' })).toBeVisible();
   await expect(page.getByText('Быстрые действия')).toBeVisible();
+});
+
+test('returns to Auth after logout and opens Dashboard after login', async ({ page }) => {
+  const email = `logout-${Date.now()}@example.com`;
+
+  await registerThroughForm(page, email);
+
+  await openProfileTab(page);
+  await page.getByText('Log out').click();
+
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByText('Welcome back')).toBeVisible();
+
+  await page.getByPlaceholder('Email').fill(email);
+  await page.getByPlaceholder('Password').fill('strong-password');
+  const loginResponsePromise = page.waitForResponse((response) =>
+    response.url().includes('/auth/login')
+  );
+  await page.getByText('Log in').last().click();
+  const loginResponse = await loginResponsePromise;
+
+  expect(loginResponse.status(), loginResponse.url()).toBe(200);
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page.getByText('Dashboard', { exact: true })).toBeVisible();
 });
