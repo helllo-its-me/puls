@@ -10,12 +10,15 @@
     "dev:api": "pnpm --filter @health/api dev",
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
-    "db:push": "pnpm --filter @health/db db:push",
+    "db:generate": "pnpm --filter @health/db db:generate",
+    "db:migrate": "pnpm --filter @health/db db:migrate",
+    "db:check": "pnpm --filter @health/db db:check",
     "db:seed": "pnpm --filter @health/db db:seed",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
-    "test": "pnpm test:unit && pnpm test:e2e",
+    "test": "pnpm db:check && pnpm test:unit && pnpm test:migrations && pnpm test:e2e",
     "test:unit": "vitest run",
+    "test:migrations": "tsc --noEmit -p tsconfig.migrations.json && vitest run --config vitest.migrations.config.ts",
     "test:e2e": "playwright test"
   },
   "devDependencies": {

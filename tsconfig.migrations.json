@@ -1,12 +1,11 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
+    "noEmit": true,
     "types": ["node"]
   },
   "include": [
-    "tests/**/*.ts",
-    "vitest.config.ts",
-    "vitest.migrations.config.ts",
-    "playwright.config.ts"
+    "tests/integration/database-migrations.test.ts",
+    "vitest.migrations.config.ts"
   ]
 }
