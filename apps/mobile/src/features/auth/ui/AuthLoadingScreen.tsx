@@ -1,14 +1,11 @@
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { AuthScreen } from '@/features/auth/ui/AuthScreen';
-import { useAuth } from '@/features/auth/AuthProvider';
-import { ProfileScreen } from '@/features/profile/ui/ProfileScreen';
 import { useTranslation } from '@/i18n/LocalizationProvider';
 import { spacing } from '@/theme/tokens';
 import { AppText } from '@/ui/AppText';
 import { Screen } from '@/ui/Screen';
 
-function AuthLoadingState() {
+export function AuthLoadingScreen() {
   const { t } = useTranslation();
 
   return (
@@ -18,20 +15,6 @@ function AuthLoadingState() {
       </View>
     </Screen>
   );
-}
-
-export function AuthGate() {
-  const auth = useAuth();
-
-  if (auth.isLoading) {
-    return <AuthLoadingState />;
-  }
-
-  if (!auth.session) {
-    return <AuthScreen />;
-  }
-
-  return <ProfileScreen />;
 }
 
 const styles = StyleSheet.create({

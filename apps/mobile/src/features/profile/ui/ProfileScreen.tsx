@@ -1,9 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
-import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
-import { useAuth } from '@/features/auth/AuthProvider';
 import { useProfileQuery } from '@/features/profile/hooks/use-profile-query';
 import { useTranslation } from '@/i18n/LocalizationProvider';
 import { LocaleSwitcher } from '@/i18n/ui/LocaleSwitcher';
@@ -48,9 +46,13 @@ function ProfileErrorState({ onRetry }: ProfileErrorStateProps) {
   );
 }
 
-export function ProfileScreen() {
-  const auth = useAuth();
-  const router = useRouter();
+type ProfileScreenProps = {
+  onEditProfile: () => void;
+  onLogout: () => void;
+  onUnauthorized: () => void;
+};
+
+export function ProfileScreen({ onEditProfile, onLogout, onUnauthorized }: ProfileScreenProps) {
   const profileQuery = useProfileQuery();
   const { locale, setLocale, t } = useTranslation();
 
@@ -61,8 +63,8 @@ export function ProfileScreen() {
       return;
     }
 
-    void auth.logout();
-  }, [auth, profileQuery.error]);
+    onUnauthorized();
+  }, [onUnauthorized, profileQuery.error]);
 
   return (
     <Screen>
@@ -87,14 +89,12 @@ export function ProfileScreen() {
           <Button
             label={t('profile.edit.open')}
             variant="secondary"
-            onPress={() => router.push('/profile/edit')}
+            onPress={onEditProfile}
           />
           <Button
             label={t('auth.logout')}
             variant="secondary"
-            onPress={() => {
-              void auth.logout();
-            }}
+            onPress={onLogout}
           />
         </View>
         {profileQuery.isPending ? <ProfileLoadingState /> : null}
