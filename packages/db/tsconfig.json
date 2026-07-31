@@ -3,5 +3,13 @@
   "compilerOptions": {
     "composite": true
   },
-  "include": ["src", "drizzle.config.ts"]
+  "include": [
+    "src",
+    "scripts",
+    "test-fixtures",
+    "drizzle.config.ts",
+    "drizzle.introspection.config.ts",
+    "drizzle.legacy-test.config.ts",
+    "drizzle.schema-check.config.ts"
+  ]
 }

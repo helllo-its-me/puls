@@ -43,6 +43,40 @@ The system follows explicit layer boundaries:
 
 This keeps persistence, transport, and rendering concerns isolated from each other.
 
+## Database migrations
+
+Database schema changes are stored as versioned SQL migrations in `packages/db/migrations`.
+
+After changing `packages/db/src/schema.ts`, generate and review a migration:
+
+```bash
+pnpm db:generate
+```
+
+Apply all pending migrations to the configured database:
+
+```bash
+pnpm db:migrate
+```
+
+Validate both the migration history and that `schema.ts` matches the latest migration:
+
+```bash
+pnpm db:check
+```
+
+`pnpm dev:full` applies pending migrations automatically before starting the API and mobile app.
+
+For databases previously created with `db:push`, `db:migrate` first introspects the existing schema and compares it with the initial migration snapshot. An exact match is safely recorded as the initial baseline without recreating tables or deleting data. Any schema difference stops the migration without recording the baseline.
+
+Run the isolated migration workflow tests:
+
+```bash
+pnpm test:migrations
+```
+
+The tests create temporary databases for fresh migration, legacy baseline, schema drift, and concurrent startup scenarios. They do not use or seed the regular `health_app` database.
+
 ## Project Structure
 
 ```text

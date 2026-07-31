@@ -17,7 +17,7 @@ export default defineConfig({
   webServer: [
     {
       command:
-        `pnpm db:up && until docker compose exec -T postgres pg_isready -U postgres -d health_app; do sleep 1; done && pnpm --filter @health/db exec drizzle-kit push --force && pnpm db:seed && AUTH_TOKEN_SECRET=e2e-auth-secret PORT=${apiPort} pnpm --filter @health/api dev`,
+        `pnpm db:up && until docker compose exec -T postgres pg_isready -U postgres -d health_app; do sleep 1; done && pnpm db:migrate && pnpm db:seed && AUTH_TOKEN_SECRET=e2e-auth-secret PORT=${apiPort} pnpm --filter @health/api dev`,
       url: `${apiBaseUrl}/health`,
       reuseExistingServer: false,
       timeout: 120_000

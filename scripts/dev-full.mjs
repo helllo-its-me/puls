@@ -95,8 +95,8 @@ async function main() {
   console.log('Waiting for PostgreSQL to accept connections...');
   await waitForPostgres();
 
-  console.log('Applying database schema...');
-  await run('pnpm', ['db:push']);
+  console.log('Applying pending database migrations...');
+  await run('pnpm', ['db:migrate']);
 
   console.log('Starting API and mobile dev servers...');
   const apiProcess = startLongRunningProcess('pnpm', ['dev:api']);
