@@ -125,6 +125,8 @@ async function waitForPostgres(): Promise<void> {
       '-T',
       databaseTestConfig.composeService,
       'pg_isready',
+      '-h',
+      databaseTestConfig.composeDatabaseHost,
       '-U',
       databaseTestConfig.databaseUser
     ]);

@@ -18,6 +18,32 @@ The project combines a React Native mobile client with a TypeScript backend and 
 | Testing | Vitest, Playwright |
 | Tooling | pnpm workspace, Docker Compose |
 
+## Prerequisites
+
+- Node.js version declared in `.nvmrc`
+- pnpm 10.6.5 through Corepack
+- Docker for database and E2E checks
+
+Use `.nvmrc` to select the repository Node.js version, then install dependencies:
+
+```bash
+corepack enable
+pnpm install --frozen-lockfile
+pnpm exec playwright install chromium
+```
+
+## Quality checks
+
+Run the same checks that protect pull requests in CI:
+
+```bash
+pnpm typecheck
+pnpm lint
+pnpm test:unit
+pnpm test:e2e
+pnpm build
+```
+
 ## Architecture
 
 The repository is organized as a monorepo with clear separation of responsibilities:
