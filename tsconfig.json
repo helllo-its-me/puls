@@ -1,7 +1,12 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "types": ["node"]
+    "types": ["node"],
+    "paths": {
+      "@/*": ["apps/mobile/src/*"],
+      "@health/db": ["packages/db/src/index.ts"],
+      "@health/shared": ["packages/shared/src/index.ts"]
+    }
   },
   "include": [
     "tests/**/*.ts",

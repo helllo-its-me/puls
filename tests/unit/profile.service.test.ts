@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { profileResponseSchema } from '@health/shared';
 
 import * as profileRepository from '../../apps/api/src/features/profile/profile.repository.js';
+import type { ProfileAggregate } from '../../apps/api/src/features/profile/profile.domain.js';
 import {
   getProfileByUserId,
   mapProfileAggregateToResponse,
@@ -43,7 +44,7 @@ describe('mapProfileRecordToResponse', () => {
   });
 
   it('updates the profile by user id', async () => {
-    const updatedAggregate = {
+    const updatedAggregate: ProfileAggregate = {
       ...profileAggregateFixture,
       profile: {
         ...profileAggregateFixture.profile,

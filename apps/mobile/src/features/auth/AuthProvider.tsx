@@ -1,6 +1,14 @@
 import type { AuthResponse, LoginRequest, RegisterRequest } from '@health/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createContext, PropsWithChildren, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  createContext,
+  PropsWithChildren,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState
+} from 'react';
 
 import {
   getCurrentUser,
@@ -60,11 +68,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
   });
 
-  async function clearSessionState(): Promise<void> {
+  const clearSessionState = useCallback(async (): Promise<void> => {
     await clearAuthSession();
     setSession(null);
     queryClient.removeQueries({ queryKey: ['profile'] });
-  }
+  }, [queryClient]);
 
   useEffect(() => {
     let isMounted = true;
@@ -169,7 +177,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         await clearSessionState();
       }
     }),
-    [isLoading, loginMutation, queryClient, registerMutation, session]
+    [clearSessionState, isLoading, loginMutation, queryClient, registerMutation, session]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
