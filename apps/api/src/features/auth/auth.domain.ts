@@ -3,31 +3,20 @@ export type AuthUser = {
   email: string;
 };
 
-export type UserCredentials = AuthUser & {
-  passwordHash: string | null;
+export type AuthSessionUser = AuthUser & {
+  authVersion: number;
 };
 
-export type CreateUserWithProfileInput = {
-  userId: string;
-  profileId: string;
-  email: string;
-  passwordHash: string;
-  firstName: string;
-  lastName: string;
-  createdAt: Date;
+export type UserCredentials = AuthSessionUser & {
+  passwordHash: string | null;
 };
 
 export type CreateRefreshSessionInput = {
   id: string;
+  familyId: string;
   userId: string;
+  authVersion: number;
   tokenHash: string;
   expiresAt: Date;
   createdAt: Date;
-};
-
-export type ActiveRefreshSession = {
-  id: string;
-  userId: string;
-  email: string;
-  expiresAt: Date;
 };

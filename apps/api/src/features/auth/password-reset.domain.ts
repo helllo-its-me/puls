@@ -2,6 +2,7 @@ export type PasswordResetCode = {
   id: string;
   email: string;
   codeHash: string;
+  encryptedCode: string | null;
   expiresAt: Date;
   resetTokenHash: string | null;
   resetTokenExpiresAt: Date | null;
@@ -14,6 +15,7 @@ export type CreatePasswordResetCodeInput = {
   id: string;
   email: string;
   codeHash: string;
+  encryptedCode: string;
   expiresAt: Date;
   createdAt: Date;
 };

@@ -1,6 +1,7 @@
 export const authModes = {
   login: 'login',
   register: 'register',
+  verifyRegistration: 'verifyRegistration',
   requestPasswordReset: 'requestPasswordReset',
   verifyPasswordResetCode: 'verifyPasswordResetCode',
   resetPassword: 'resetPassword'

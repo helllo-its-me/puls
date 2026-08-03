@@ -103,6 +103,21 @@ pnpm test:migrations
 
 The tests create temporary databases for fresh migration, legacy baseline, schema drift, and concurrent startup scenarios. They do not use or seed the regular `health_app` database.
 
+Playwright also creates a uniquely named `puls_e2e_<pid>` database, runs migrations and seed only there, and removes it during global teardown. `pnpm test:e2e` never truncates the regular development database.
+
+## Authentication security configuration
+
+- `NODE_ENV` is required and must be `development`, `test`, `staging`, or `production`. Only `development` and `test` permit local relaxed security settings.
+- `AUTH_TOKEN_SECRET` and every value in `AUTH_TOKEN_PREVIOUS_SECRETS` must be generated secrets. Staging and production accept only an exact 32-byte value encoded as 64 hex or 43 base64url characters.
+- `WEB_APP_ORIGINS` contains the comma-separated web origins allowed to use credentialed API requests. Staging and production require a non-empty HTTPS allowlist and Secure cookies. Web refresh tokens are held only in an `HttpOnly; SameSite=Strict` cookie; native refresh tokens remain in SecureStore.
+- `AUTH_TRUST_PROXY_HOPS` must match the number of trusted reverse proxies in front of the API. Leave it at `0` when the API is directly reachable.
+- `PASSWORD_RESET_EMAIL_DELIVERY_MODE=log` is allowed only in development/test. Staging and production must explicitly use `smtp`; port 465 uses implicit TLS, while other ports require a successful STARTTLS upgrade.
+- Password reset emails are delivered asynchronously from a durable queue. Pending reset codes are encrypted with a key derived from `AUTH_TOKEN_SECRET`; keep rotated values in `AUTH_TOKEN_PREVIOUS_SECRETS` until their queued jobs expire.
+- Registration always returns the same accepted response without creating a session. Pending credentials, the emailed code, and a client-held registration token belong to one immutable attempt; only that exact attempt can create the account. `REGISTRATION_MIN_RESPONSE_MS` sets the minimum request duration so an existing email cannot be inferred from status, body, or ordinary timing differences; staging and production reject values below 1000 ms.
+- `PASSWORD_RESET_MIN_RESPONSE_MS` provides the minimum password-reset request duration and should be tuned above normal password-hashing and database latency; staging and production reject values below 1000 ms.
+- Auth and password reset responses use `Cache-Control: no-store`.
+- The development password reset sender writes codes to the local log and is never selected in production.
+
 ## Project Structure
 
 ```text

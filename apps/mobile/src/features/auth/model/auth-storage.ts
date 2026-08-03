@@ -1,4 +1,8 @@
-import { authResponseSchema, type AuthResponse } from '@health/shared';
+import {
+  nativeAuthResponseSchema,
+  type AuthResponse,
+  type NativeAuthResponse
+} from '@health/shared';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
@@ -7,7 +11,8 @@ const authSessionStorageKey = 'auth-session';
 
 async function getStoredSessionValue(): Promise<string | null> {
   if (Platform.OS === 'web') {
-    return AsyncStorage.getItem(authSessionStorageKey);
+    await AsyncStorage.removeItem(authSessionStorageKey);
+    return null;
   }
 
   return SecureStore.getItemAsync(authSessionStorageKey);
@@ -15,7 +20,7 @@ async function getStoredSessionValue(): Promise<string | null> {
 
 async function setStoredSessionValue(value: string): Promise<void> {
   if (Platform.OS === 'web') {
-    await AsyncStorage.setItem(authSessionStorageKey, value);
+    await AsyncStorage.removeItem(authSessionStorageKey);
     return;
   }
 
@@ -40,7 +45,7 @@ export async function loadAuthSession(): Promise<AuthResponse | null> {
 
   try {
     const parsedValue: unknown = JSON.parse(storedValue);
-    const session = authResponseSchema.safeParse(parsedValue);
+    const session = nativeAuthResponseSchema.safeParse(parsedValue);
 
     return session.success ? session.data : null;
   } catch {
@@ -49,7 +54,14 @@ export async function loadAuthSession(): Promise<AuthResponse | null> {
 }
 
 export async function saveAuthSession(session: AuthResponse): Promise<void> {
-  await setStoredSessionValue(JSON.stringify(session));
+  if (Platform.OS === 'web') {
+    await removeStoredSessionValue();
+    return;
+  }
+
+  const nativeSession: NativeAuthResponse = nativeAuthResponseSchema.parse(session);
+
+  await setStoredSessionValue(JSON.stringify(nativeSession));
 }
 
 export async function clearAuthSession(): Promise<void> {

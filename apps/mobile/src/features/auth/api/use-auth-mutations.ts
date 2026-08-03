@@ -3,12 +3,19 @@ import { useMutation } from '@tanstack/react-query';
 import {
   completePasswordReset,
   requestPasswordReset,
+  verifyRegisteredEmail,
   verifyPasswordResetCode
 } from '@/features/auth/api/auth-api';
 
 export function usePasswordResetRequestMutation() {
   return useMutation({
     mutationFn: requestPasswordReset
+  });
+}
+
+export function useRegistrationVerifyMutation() {
+  return useMutation({
+    mutationFn: verifyRegisteredEmail
   });
 }
 

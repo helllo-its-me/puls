@@ -1,4 +1,9 @@
-import type { AuthResponse, LoginRequest, RegisterRequest } from '@health/shared';
+import type {
+  AuthResponse,
+  LoginRequest,
+  RegisterRequest,
+  RegisterRequestResponse
+} from '@health/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   createContext,
@@ -9,6 +14,7 @@ import {
   useMemo,
   useState
 } from 'react';
+import { Platform } from 'react-native';
 
 import {
   getCurrentUser,
@@ -22,6 +28,7 @@ import {
   loadAuthSession,
   saveAuthSession
 } from '@/features/auth/model/auth-storage';
+import { runCoordinatedRefresh } from '@/features/auth/model/auth-refresh-coordinator';
 import { ApiError } from '@/lib/api/api-error';
 
 type AuthContextValue = {
@@ -29,7 +36,7 @@ type AuthContextValue = {
   accessToken: string | null;
   isLoading: boolean;
   login: (input: LoginRequest) => Promise<void>;
-  register: (input: RegisterRequest) => Promise<void>;
+  register: (input: RegisterRequest) => Promise<RegisterRequestResponse>;
   refreshSession: () => Promise<AuthResponse | null>;
   logout: () => Promise<void>;
 };
@@ -40,11 +47,15 @@ function shouldClearStoredSession(error: unknown): boolean {
   return error instanceof ApiError && error.status === 401;
 }
 
-async function refreshStoredSession(refreshToken: string): Promise<AuthResponse> {
-  const nextSession = await refreshSession({ refreshToken });
-  await saveAuthSession(nextSession);
+async function refreshStoredSession(refreshToken: string | null): Promise<AuthResponse> {
+  return runCoordinatedRefresh(async () => {
+    const nextSession = await refreshSession({
+      refreshToken: Platform.OS === 'web' ? null : refreshToken
+    });
+    await saveAuthSession(nextSession);
 
-  return nextSession;
+    return nextSession;
+  });
 }
 
 export function AuthProvider({ children }: PropsWithChildren) {
@@ -60,12 +71,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
   });
   const registerMutation = useMutation({
-    mutationFn: register,
-    onSuccess: async (nextSession) => {
-      await saveAuthSession(nextSession);
-      setSession(nextSession);
-      await queryClient.invalidateQueries({ queryKey: ['profile'] });
-    }
+    mutationFn: register
   });
 
   const clearSessionState = useCallback(async (): Promise<void> => {
@@ -81,6 +87,18 @@ export function AuthProvider({ children }: PropsWithChildren) {
       const storedSession = await loadAuthSession();
 
       if (!storedSession) {
+        if (Platform.OS === 'web') {
+          try {
+            const refreshedSession = await refreshStoredSession(null);
+
+            if (isMounted) {
+              setSession(refreshedSession);
+            }
+          } catch {
+            // An absent or expired HttpOnly refresh cookie means the user is signed out.
+          }
+        }
+
         if (isMounted) {
           setIsLoading(false);
         }
@@ -146,7 +164,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         await loginMutation.mutateAsync(input);
       },
       register: async (input) => {
-        await registerMutation.mutateAsync(input);
+        return registerMutation.mutateAsync(input);
       },
       refreshSession: async () => {
         if (!session) {
@@ -171,7 +189,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
       },
       logout: async () => {
         if (session) {
-          await logout({ refreshToken: session.refreshToken }).catch(() => undefined);
+          await logout({
+            refreshToken: Platform.OS === 'web' ? null : session.refreshToken
+          }).catch(() => undefined);
         }
 
         await clearSessionState();

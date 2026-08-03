@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { ApiError } from '../../apps/mobile/src/lib/api/api-error.js';
+import { authErrorCodes } from '../../packages/shared/src/auth/error-codes.js';
 import {
   authModes,
   buildAuthSubmitResult,
@@ -14,6 +15,8 @@ function createAuthFormValues(input: Partial<AuthFormValues>): AuthFormValues {
     password: '',
     passwordConfirmation: '',
     resetCode: '',
+    emailVerificationCode: '',
+    registrationToken: '',
     passwordResetToken: '',
     firstName: '',
     lastName: '',
@@ -43,6 +46,23 @@ describe('auth form model', () => {
       payload: {
         email: 'user@example.com',
         password: 'strong-password'
+      }
+    });
+  });
+
+  it('keeps login compatible with previously accepted long passwords', () => {
+    const longPassword = 'p'.repeat(256);
+    const result = buildAuthSubmitResult(authModes.login, createAuthFormValues({
+      email: 'user@example.com',
+      password: longPassword
+    }));
+
+    expect(result).toEqual({
+      ok: true,
+      mode: authModes.login,
+      payload: {
+        email: 'user@example.com',
+        password: longPassword
       }
     });
   });
@@ -87,11 +107,19 @@ describe('auth form model', () => {
   });
 
   it('maps submit failures to readable translation keys', () => {
-    expect(getAuthSubmitErrorKey(new ApiError('Invalid email or password', 401))).toBe(
+    expect(getAuthSubmitErrorKey(new ApiError(
+      'wording may change',
+      401,
+      authErrorCodes.invalid_credentials
+    ))).toBe(
       'auth.error.invalidCredentials'
     );
-    expect(getAuthSubmitErrorKey(new ApiError('Email is already registered', 409))).toBe(
-      'auth.error.emailRegistered'
+    expect(getAuthSubmitErrorKey(new ApiError(
+      'wording may change',
+      429,
+      authErrorCodes.rate_limited
+    ))).toBe(
+      'auth.error.rateLimited'
     );
     expect(getAuthSubmitErrorKey(new TypeError('Failed to fetch'))).toBe('auth.error.network');
     expect(getAuthSubmitErrorKey(new Error('Unexpected'))).toBe('auth.error.generic');
@@ -126,10 +154,31 @@ describe('auth form model', () => {
     });
   });
 
+  it('binds email verification to the registration attempt token', () => {
+    const result = buildAuthSubmitResult(
+      authModes.verifyRegistration,
+      createAuthFormValues({
+        email: 'new@example.com',
+        emailVerificationCode: '123456',
+        registrationToken: 'registration-token'
+      })
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      mode: authModes.verifyRegistration,
+      payload: {
+        email: 'new@example.com',
+        code: '123456',
+        registrationToken: 'registration-token'
+      }
+    });
+  });
+
   it('validates password confirmation before completing password reset', () => {
     const result = buildAuthSubmitResult(authModes.resetPassword, createAuthFormValues({
       passwordResetToken: 'reset-token',
-      password: 'new-password',
+      password: 'new-password-value',
       passwordConfirmation: 'other-password'
     }));
 
@@ -141,8 +190,8 @@ describe('auth form model', () => {
 
   it('requires verified email before completing password reset', () => {
     const result = buildAuthSubmitResult(authModes.resetPassword, createAuthFormValues({
-      password: 'new-password',
-      passwordConfirmation: 'new-password'
+      password: 'new-password-value',
+      passwordConfirmation: 'new-password-value'
     }));
 
     expect(result).toEqual({
@@ -154,8 +203,8 @@ describe('auth form model', () => {
   it('builds a password reset completion payload with a verified reset token', () => {
     const result = buildAuthSubmitResult(authModes.resetPassword, createAuthFormValues({
       passwordResetToken: 'reset-token',
-      password: 'new-password',
-      passwordConfirmation: 'new-password'
+      password: 'new-password-value',
+      passwordConfirmation: 'new-password-value'
     }));
 
     expect(result).toEqual({
@@ -163,8 +212,8 @@ describe('auth form model', () => {
       mode: authModes.resetPassword,
       payload: {
         resetToken: 'reset-token',
-        password: 'new-password',
-        passwordConfirmation: 'new-password'
+        password: 'new-password-value',
+        passwordConfirmation: 'new-password-value'
       }
     });
   });

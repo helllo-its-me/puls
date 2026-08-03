@@ -1,41 +1,30 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 
+import { getCurrentAuthSecret, getPreviousAuthSecrets } from './auth-secret.js';
+
+const tokenHeaderSchema = z.object({
+  alg: z.literal('HS256'),
+  typ: z.literal('JWT')
+});
 const tokenPayloadSchema = z.object({
   sub: z.string(),
-  email: z.string(),
+  av: z.number().int().nonnegative().default(0),
   exp: z.number()
 });
 
 export type TokenPayload = {
   sub: string;
-  email: string;
+  av: number;
   exp: number;
 };
 
-function getCurrentAuthTokenSecret(): string {
-  const secret = process.env.AUTH_TOKEN_SECRET;
-
-  if (!secret) {
-    throw new Error('AUTH_TOKEN_SECRET is required');
-  }
-
-  return secret;
-}
-
-function getPreviousAuthTokenSecrets(): string[] {
-  return (process.env.AUTH_TOKEN_PREVIOUS_SECRETS ?? '')
-    .split(',')
-    .map((secret) => secret.trim())
-    .filter((secret) => secret.length > 0);
-}
-
 function getVerificationSecrets(): string[] {
-  return [getCurrentAuthTokenSecret(), ...getPreviousAuthTokenSecrets()];
+  return [getCurrentAuthSecret(), ...getPreviousAuthSecrets()];
 }
 
 export function assertAuthTokenConfig(): void {
-  getCurrentAuthTokenSecret();
+  getVerificationSecrets();
 }
 
 function encodeJson(value: object): string {
@@ -57,18 +46,18 @@ function safeEqual(left: string, right: string): boolean {
   return timingSafeEqual(leftBuffer, rightBuffer);
 }
 
-export function createAccessToken(user: { id: string; email: string }): string {
+export function createAccessToken(user: { id: string; authVersion: number }): string {
   const header = encodeJson({
     alg: 'HS256',
     typ: 'JWT'
   });
   const payload = encodeJson({
     sub: user.id,
-    email: user.email,
+    av: user.authVersion,
     exp: Math.floor(Date.now() / 1000) + 60 * 60
   });
   const unsignedToken = `${header}.${payload}`;
-  const signature = sign(unsignedToken, getCurrentAuthTokenSecret());
+  const signature = sign(unsignedToken, getCurrentAuthSecret());
 
   return `${unsignedToken}.${signature}`;
 }
@@ -95,6 +84,12 @@ export function verifyAccessToken(token: string): TokenPayload | null {
   }
 
   try {
+    const parsedHeader: unknown = JSON.parse(Buffer.from(header, 'base64url').toString('utf8'));
+
+    if (!tokenHeaderSchema.safeParse(parsedHeader).success) {
+      return null;
+    }
+
     const parsedPayload: unknown = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
     const tokenPayload = tokenPayloadSchema.safeParse(parsedPayload);
 

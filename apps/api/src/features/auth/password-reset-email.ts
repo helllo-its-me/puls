@@ -8,6 +8,8 @@ export type PasswordResetEmail = {
 
 export type PasswordResetEmailSender = {
   sendPasswordResetCode: (email: PasswordResetEmail) => Promise<void>;
+  sendEmailVerificationCode: (email: PasswordResetEmail) => Promise<void>;
+  sendPasswordChangedNotice: (email: string) => Promise<void>;
 };
 
 export const devPasswordResetEmailSender: PasswordResetEmailSender = {
@@ -20,5 +22,18 @@ export const devPasswordResetEmailSender: PasswordResetEmailSender = {
       },
       'Password reset code'
     );
+  },
+  sendEmailVerificationCode: async (email) => {
+    logger.info(
+      {
+        email: email.email,
+        code: email.code,
+        expiresAt: email.expiresAt.toISOString()
+      },
+      'Email verification code'
+    );
+  },
+  sendPasswordChangedNotice: async (email) => {
+    logger.info({ email }, 'Password changed notification');
   }
 };

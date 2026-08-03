@@ -2,21 +2,22 @@ import { profileResponseSchema, updateProfileRequestSchema } from '@health/share
 import { Hono } from 'hono';
 import { ZodError } from 'zod';
 
-import { getBearerToken, verifyAccessToken } from '../features/auth/auth.token.js';
+import { getAuthenticatedUser } from '../features/auth/authentication.service.js';
 import {
   getProfileByUserId,
   updateProfileByUserId
 } from '../features/profile/profile.service.js';
 
-function getCurrentUserId(authorizationHeader: string | undefined): string | null {
-  const token = getBearerToken(authorizationHeader);
-  const currentUser = token ? verifyAccessToken(token) : null;
+async function getCurrentUserId(
+  authorizationHeader: string | undefined
+): Promise<string | null> {
+  const currentUser = await getAuthenticatedUser(authorizationHeader);
 
-  return currentUser?.sub ?? null;
+  return currentUser?.id ?? null;
 }
 
 export const profileRoute = new Hono().get('/profile', async (context) => {
-  const currentUserId = getCurrentUserId(context.req.header('authorization'));
+  const currentUserId = await getCurrentUserId(context.req.header('authorization'));
 
   if (!currentUserId) {
     return context.json({ message: 'Current user is required' }, 401);
@@ -32,7 +33,7 @@ export const profileRoute = new Hono().get('/profile', async (context) => {
 
   return context.json(parsedProfile);
 }).patch('/profile', async (context) => {
-  const currentUserId = getCurrentUserId(context.req.header('authorization'));
+  const currentUserId = await getCurrentUserId(context.req.header('authorization'));
 
   if (!currentUserId) {
     return context.json({ message: 'Current user is required' }, 401);

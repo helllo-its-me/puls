@@ -1,23 +1,47 @@
 import { z } from 'zod';
 
-const emailSchema = z.string().trim().toLowerCase().email();
-const passwordSchema = z.string().min(8);
+const emailMaximumLength = 255;
+const opaqueTokenMaximumLength = 128;
+const emailSchema = z.string().trim().toLowerCase().email().max(emailMaximumLength);
+const passwordMaximumLength = 128;
+const newPasswordMinimumLength = 15;
+const loginPasswordSchema = z.string().min(1);
+const newPasswordSchema = z
+  .string()
+  .min(newPasswordMinimumLength)
+  .max(passwordMaximumLength);
 const nameSchema = z.string().trim().min(1).max(255);
 
 export const registerRequestSchema = z.object({
   firstName: nameSchema,
   lastName: nameSchema,
   email: emailSchema,
-  password: passwordSchema
+  password: newPasswordSchema
+});
+
+export const registerRequestResponseSchema = z.object({
+  status: z.literal('ok'),
+  registrationToken: z.string().min(1).max(opaqueTokenMaximumLength)
+});
+
+export const registerVerifyRequestSchema = z.object({
+  email: emailSchema,
+  code: z.string().trim().regex(/^\d{6}$/),
+  registrationToken: z.string().min(1).max(opaqueTokenMaximumLength)
 });
 
 export const loginRequestSchema = z.object({
   email: emailSchema,
-  password: passwordSchema
+  password: loginPasswordSchema
 });
 
 export const passwordResetRequestSchema = z.object({
   email: emailSchema
+});
+
+export const passwordResetRequestResponseSchema = z.object({
+  status: z.literal('ok'),
+  expiresAt: z.iso.datetime()
 });
 
 export const passwordResetVerifyRequestSchema = z.object({
@@ -26,13 +50,13 @@ export const passwordResetVerifyRequestSchema = z.object({
 });
 
 export const passwordResetVerifyResponseSchema = z.object({
-  resetToken: z.string().min(1)
+  resetToken: z.string().min(1).max(opaqueTokenMaximumLength)
 });
 
 export const passwordResetCompleteRequestSchema = z.object({
-  resetToken: z.string().min(1),
-  password: passwordSchema,
-  passwordConfirmation: passwordSchema
+  resetToken: z.string().min(1).max(opaqueTokenMaximumLength),
+  password: newPasswordSchema,
+  passwordConfirmation: newPasswordSchema
 }).refine((input) => input.password === input.passwordConfirmation, {
   message: 'Password confirmation must match password',
   path: ['passwordConfirmation']
@@ -49,8 +73,12 @@ export const authUserSchema = z.object({
 
 export const authResponseSchema = z.object({
   accessToken: z.string().min(1),
-  refreshToken: z.string().min(1),
+  refreshToken: z.string().min(1).nullable(),
   user: authUserSchema
+});
+
+export const nativeAuthResponseSchema = authResponseSchema.extend({
+  refreshToken: z.string().min(1)
 });
 
 export const authMeResponseSchema = z.object({
@@ -58,5 +86,5 @@ export const authMeResponseSchema = z.object({
 });
 
 export const refreshTokenRequestSchema = z.object({
-  refreshToken: z.string().min(1)
+  refreshToken: z.string().min(1).max(opaqueTokenMaximumLength).nullable()
 });

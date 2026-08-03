@@ -4,6 +4,7 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import {
   usePasswordResetCompleteMutation,
   usePasswordResetRequestMutation,
+  useRegistrationVerifyMutation,
   usePasswordResetVerifyMutation
 } from '@/features/auth/api/use-auth-mutations';
 import {
@@ -23,6 +24,7 @@ import type { TranslationKey } from '@/i18n/dictionaries';
 type UseAuthFormResult = {
   mode: AuthMode;
   isRegisterMode: boolean;
+  isRegistrationVerifyMode: boolean;
   isPasswordResetRequestMode: boolean;
   isPasswordResetVerifyMode: boolean;
   isPasswordResetCompleteMode: boolean;
@@ -47,6 +49,7 @@ export function useAuthForm(): UseAuthFormResult {
   const formFields = useAuthFormFields();
   const passwordResetCountdown = usePasswordResetCountdown();
   const passwordResetRequestMutation = usePasswordResetRequestMutation();
+  const registrationVerifyMutation = useRegistrationVerifyMutation();
   const passwordResetVerifyMutation = usePasswordResetVerifyMutation();
   const passwordResetCompleteMutation = usePasswordResetCompleteMutation();
   const [mode, setMode] = useState<AuthMode>(authModes.login);
@@ -56,12 +59,15 @@ export function useAuthForm(): UseAuthFormResult {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const values = formFields.values;
   const isRegisterMode = mode === authModes.register;
+  const isRegistrationVerifyMode = mode === authModes.verifyRegistration;
   const isPasswordResetRequestMode = mode === authModes.requestPasswordReset;
   const isPasswordResetVerifyMode = mode === authModes.verifyPasswordResetCode;
   const isPasswordResetCompleteMode = mode === authModes.resetPassword;
   const isPasswordResetSubmitting = passwordResetRequestMutation.isPending
     || passwordResetVerifyMutation.isPending
     || passwordResetCompleteMutation.isPending;
+  const isSubmittingMutation = isPasswordResetSubmitting
+    || registrationVerifyMutation.isPending;
   function setModeAndClearMessages(nextMode: AuthMode) {
     setErrorKey(null);
     setSuccessKey(null);
@@ -92,9 +98,9 @@ export function useAuthForm(): UseAuthFormResult {
     setIsSubmitting(true);
 
     try {
-      await passwordResetRequestMutation.mutateAsync(submitResult.payload);
+      const requestResult = await passwordResetRequestMutation.mutateAsync(submitResult.payload);
       formFields.clearPasswordResetFields();
-      passwordResetCountdown.startCountdown();
+      passwordResetCountdown.startCountdown(requestResult.expiresAt);
       setMode(authModes.verifyPasswordResetCode);
     } catch (error) {
       setErrorKey(getAuthSubmitErrorKey(error));
@@ -117,14 +123,29 @@ export function useAuthForm(): UseAuthFormResult {
 
     try {
       if (submitResult.mode === authModes.register) {
-        await auth.register(submitResult.payload);
+        const registrationResult = await auth.register(submitResult.payload);
+        formFields.setters.setPassword('');
+        formFields.clearEmailVerificationCode();
+        formFields.setRegistrationToken(registrationResult.registrationToken);
+        setSuccessKey('auth.register.codeSent');
+        setMode(authModes.verifyRegistration);
+        return;
+      }
+
+      if (submitResult.mode === authModes.verifyRegistration) {
+        await registrationVerifyMutation.mutateAsync(submitResult.payload);
+        formFields.clearRegistrationVerification();
+        setSuccessKey('auth.register.verified');
+        setMode(authModes.login);
         return;
       }
 
       if (submitResult.mode === authModes.requestPasswordReset) {
-        await passwordResetRequestMutation.mutateAsync(submitResult.payload);
+        const requestResult = await passwordResetRequestMutation.mutateAsync(
+          submitResult.payload
+        );
         formFields.clearPasswordResetToken();
-        passwordResetCountdown.startCountdown();
+        passwordResetCountdown.startCountdown(requestResult.expiresAt);
         setMode(authModes.verifyPasswordResetCode);
         return;
       }
@@ -157,13 +178,14 @@ export function useAuthForm(): UseAuthFormResult {
   return {
     mode,
     isRegisterMode,
+    isRegistrationVerifyMode,
     isPasswordResetRequestMode,
     isPasswordResetVerifyMode,
     isPasswordResetCompleteMode,
     values,
     setters: formFields.setters,
     isPasswordVisible,
-    isSubmitting: isSubmitting || isPasswordResetSubmitting,
+    isSubmitting: isSubmitting || isSubmittingMutation,
     errorKey,
     successKey,
     passwordResetCountdownSeconds: passwordResetCountdown.countdownSeconds,
@@ -176,10 +198,12 @@ export function useAuthForm(): UseAuthFormResult {
     goToLogin: () => {
       passwordResetCountdown.stopCountdown();
       formFields.clearPasswordResetToken();
+      formFields.clearRegistrationVerification();
       setModeAndClearMessages(authModes.login);
     },
     resendPasswordResetCode,
     switchMode: () => {
+      formFields.clearRegistrationVerification();
       setModeAndClearMessages(isRegisterMode ? authModes.login : authModes.register);
     },
     togglePasswordVisibility: () => {

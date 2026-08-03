@@ -1,20 +1,18 @@
+import { Platform } from 'react-native';
 import { z } from 'zod';
+
+import { authErrorCodeSchema } from '@health/shared';
 
 import { env } from '@/config/env';
 import { ApiError } from '@/lib/api/api-error';
 
 const errorResponseSchema = z.object({
-  message: z.string().min(1)
+  message: z.string().min(1),
+  code: authErrorCodeSchema.nullable().optional()
 });
 
 function buildHeaders(accessToken: string | null): HeadersInit {
-  if (!accessToken) {
-    return {};
-  }
-
-  return {
-    Authorization: `Bearer ${accessToken}`
-  };
+  return accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
 }
 
 async function parseResponse<TSchema extends z.ZodType>(
@@ -26,7 +24,11 @@ async function parseResponse<TSchema extends z.ZodType>(
     const parsedError = errorResponseSchema.safeParse(errorData);
     const message = parsedError.success ? parsedError.data.message : 'Request failed';
 
-    throw new ApiError(message, response.status);
+    throw new ApiError(
+      message,
+      response.status,
+      parsedError.success ? parsedError.data.code ?? null : null
+    );
   }
 
   const data: unknown = await response.json();
@@ -40,6 +42,7 @@ export async function apiGet<TSchema extends z.ZodType>(
   accessToken: string | null
 ): Promise<z.infer<TSchema>> {
   const response = await fetch(`${env.apiBaseUrl}${path}`, {
+    credentials: Platform.OS === 'web' ? 'include' : 'omit',
     headers: buildHeaders(accessToken)
   });
 
@@ -54,6 +57,7 @@ export async function apiPost<TSchema extends z.ZodType>(
 ): Promise<z.infer<TSchema>> {
   const response = await fetch(`${env.apiBaseUrl}${path}`, {
     method: 'POST',
+    credentials: Platform.OS === 'web' ? 'include' : 'omit',
     headers: {
       ...buildHeaders(accessToken),
       'Content-Type': 'application/json'
@@ -72,6 +76,7 @@ export async function apiPatch<TSchema extends z.ZodType>(
 ): Promise<z.infer<TSchema>> {
   const response = await fetch(`${env.apiBaseUrl}${path}`, {
     method: 'PATCH',
+    credentials: Platform.OS === 'web' ? 'include' : 'omit',
     headers: {
       ...buildHeaders(accessToken),
       'Content-Type': 'application/json'

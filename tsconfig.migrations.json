@@ -5,6 +5,8 @@
     "types": ["node"]
   },
   "include": [
+    "tests/integration/auth-registration-flow.test.ts",
+    "tests/integration/auth-password-reset-flow.test.ts",
     "tests/integration/database-migrations.test.ts",
     "vitest.migrations.config.ts"
   ]

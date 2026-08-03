@@ -1,11 +1,17 @@
 import { expect, type Page, test } from '@playwright/test';
 
 import { passwordResetCodeTtlSeconds } from '../../packages/shared/src/auth/constants';
+import { authErrorCodes } from '../../packages/shared/src/auth/error-codes';
 import { profileResponseFixture } from '../fixtures/profile';
+import { getEmailVerificationCode } from './auth-test-email';
 
 const millisecondsPerSecond = 1000;
 
-async function registerThroughForm(page: Page, email: string) {
+async function registerThroughForm(
+  page: Page,
+  email: string,
+  mockedVerificationCode?: string
+) {
   await page.goto('/');
 
   await page.getByText('Create one').click();
@@ -19,7 +25,27 @@ async function registerThroughForm(page: Page, email: string) {
   await page.getByText('Create account').click();
   const registrationResponse = await registrationResponsePromise;
 
-  expect(registrationResponse.status(), registrationResponse.url()).toBe(201);
+  expect(registrationResponse.status(), registrationResponse.url()).toBe(202);
+  await expect(page.getByText('Verify your email')).toBeVisible();
+  const verificationCode = mockedVerificationCode
+    ?? await getEmailVerificationCode(email);
+  await page.getByPlaceholder('Email verification code').fill(verificationCode);
+  const verificationResponsePromise = page.waitForResponse((response) =>
+    response.url().includes('/auth/register/verify')
+  );
+  await page.getByText('Verify email').click();
+  const verificationResponse = await verificationResponsePromise;
+
+  expect(verificationResponse.status(), verificationResponse.url()).toBe(200);
+  await expect(page.getByText('Email verified. Log in to continue.')).toBeVisible();
+  await page.getByPlaceholder('Password').fill('strong-password');
+  const loginResponsePromise = page.waitForResponse((response) =>
+    response.url().includes('/auth/login')
+  );
+  await page.getByText('Log in').last().click();
+  const loginResponse = await loginResponsePromise;
+
+  expect(loginResponse.status(), loginResponse.url()).toBe(200);
   await expect(page).toHaveURL(/\/dashboard$/);
 }
 
@@ -84,7 +110,7 @@ test('shows a readable registration error when password is too short', async ({ 
   await page.getByPlaceholder('Password').fill('short');
   await page.getByText('Create account').click();
 
-  await expect(page.getByText('Password must be at least 8 characters.')).toBeVisible();
+  await expect(page.getByText('Password must be between 15 and 128 characters.')).toBeVisible();
 });
 
 test('shows a readable registration error when API is unreachable', async ({ page }) => {
@@ -126,10 +152,18 @@ test('completes the password reset UI flow', async ({ page }) => {
       resetRequestCount += 1;
     }
 
-    const responseBody = route.request().url().includes('/password-reset/verify')
+    const requestUrl = route.request().url();
+    const responseBody = requestUrl.includes('/password-reset/verify')
       ? {
           resetToken: 'verified-reset-token'
         }
+      : requestUrl.includes('/password-reset/request')
+        ? {
+            status: 'ok',
+            expiresAt: resetRequestCount === 1
+              ? '2026-05-03T10:10:00.000Z'
+              : '2026-05-03T10:20:00.000Z'
+          }
       : {
           status: 'ok'
         };
@@ -163,8 +197,8 @@ test('completes the password reset UI flow', async ({ page }) => {
   await expect(page.getByPlaceholder('Reset code')).toBeHidden();
   await expect(page.getByText('Code expires in')).toBeHidden();
 
-  await page.getByRole('textbox', { name: 'Password', exact: true }).fill('new-password');
-  await page.getByPlaceholder('Confirm password').fill('new-password');
+  await page.getByRole('textbox', { name: 'Password', exact: true }).fill('new-password-value');
+  await page.getByPlaceholder('Confirm password').fill('new-password-value');
   await page.getByText('Update password').click();
 
   await expect(page.getByText('Welcome back')).toBeVisible();
@@ -177,7 +211,8 @@ test('keeps password reset steps locked until email and code are verified', asyn
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        status: 'ok'
+        status: 'ok',
+        expiresAt: '2099-01-01T00:00:00.000Z'
       })
     });
   });
@@ -186,7 +221,8 @@ test('keeps password reset steps locked until email and code are verified', asyn
       status: 400,
       contentType: 'application/json',
       body: JSON.stringify({
-        message: 'Invalid or expired reset code'
+        code: authErrorCodes.invalid_reset_code,
+        message: 'wording is not part of the client contract'
       })
     });
   });
@@ -231,8 +267,18 @@ test('opens Dashboard after registration and navigates from Home to Profile', as
   await expect(page.getByText('Quick actions')).toBeVisible();
 });
 
-test('restores a saved session on cold start and opens Dashboard', async ({ page }) => {
+test('restores a cookie session without persisting tokens in web storage', async ({
+  context,
+  page
+}) => {
   await registerThroughForm(page, `cold-start-${Date.now()}@example.com`);
+
+  const storedAuthSession = await page.evaluate(() => localStorage.getItem('auth-session'));
+  const refreshCookie = (await context.cookies()).find((cookie) => cookie.name === 'puls_refresh');
+
+  expect(storedAuthSession).toBeNull();
+  expect(refreshCookie?.httpOnly).toBe(true);
+  expect(refreshCookie?.sameSite).toBe('Strict');
 
   await page.goto('/');
 
@@ -309,15 +355,40 @@ test('returns a direct Edit Profile route to Profile on cancel', async ({ page }
 });
 
 test('refreshes the auth session after an expired profile access token', async ({ page }) => {
+  let isRegistered = false;
   let profileRequestCount = 0;
   let refreshRequestCount = 0;
 
   await page.route('**/api/v1/**', async (route) => {
     const requestUrl = route.request().url();
 
+    if (requestUrl.includes('/auth/register/verify')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          status: 'ok'
+        })
+      });
+      return;
+    }
+
     if (requestUrl.includes('/auth/register')) {
       await route.fulfill({
-        status: 201,
+        status: 202,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          status: 'ok',
+          registrationToken: 'mocked-registration-token'
+        })
+      });
+      return;
+    }
+
+    if (requestUrl.includes('/auth/login')) {
+      isRegistered = true;
+      await route.fulfill({
+        status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
           accessToken: 'expired-access-token',
@@ -332,6 +403,18 @@ test('refreshes the auth session after an expired profile access token', async (
     }
 
     if (requestUrl.includes('/auth/refresh')) {
+      if (!isRegistered) {
+        await route.fulfill({
+          status: 401,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            code: authErrorCodes.invalid_refresh_session,
+            message: 'Invalid or expired refresh session'
+          })
+        });
+        return;
+      }
+
       refreshRequestCount += 1;
       await route.fulfill({
         status: 200,
@@ -383,19 +466,26 @@ test('refreshes the auth session after an expired profile access token', async (
     });
   });
 
-  await page.goto('/');
-  await page.getByText('Create one').click();
-  await page.getByPlaceholder('First name').fill('Refresh');
-  await page.getByPlaceholder('Last name').fill('Member');
-  await page.getByPlaceholder('Email').fill('refresh@example.com');
-  await page.getByPlaceholder('Password').fill('strong-password');
-  await page.getByText('Create account').click();
-
-  await expect(page).toHaveURL(/\/dashboard$/);
+  await registerThroughForm(page, 'refresh@example.com', '123456');
   await openProfileTab(page);
   await expect(page.getByText('Refresh, your profile')).toBeVisible();
   await expect.poll(() => refreshRequestCount).toBe(1);
   await expect.poll(() => profileRequestCount).toBe(2);
+});
+
+test('serializes cookie refresh across browser tabs', async ({ context, page }) => {
+  await registerThroughForm(page, `multi-tab-${Date.now()}@example.com`);
+  const secondPage = await context.newPage();
+
+  await Promise.all([
+    page.reload(),
+    secondPage.goto('/')
+  ]);
+
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(secondPage).toHaveURL(/\/dashboard$/);
+  await expect(page.getByText('Dashboard', { exact: true })).toBeVisible();
+  await expect(secondPage.getByText('Dashboard', { exact: true })).toBeVisible();
 });
 
 test('switches profile interface and system content to russian', async ({ page }) => {

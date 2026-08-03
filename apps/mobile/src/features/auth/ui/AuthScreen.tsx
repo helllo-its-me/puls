@@ -14,13 +14,18 @@ export function AuthScreen() {
   const { locale, setLocale, t } = useTranslation();
   const isPrimaryAuthMode = !authForm.isPasswordResetRequestMode
     && !authForm.isPasswordResetVerifyMode
-    && !authForm.isPasswordResetCompleteMode;
+    && !authForm.isPasswordResetCompleteMode
+    && !authForm.isRegistrationVerifyMode;
   const shouldDisableSubmit = authForm.isSubmitting
     || (authForm.isPasswordResetVerifyMode && authForm.canResendPasswordResetCode);
 
   const title = (() => {
     if (authForm.isRegisterMode) {
       return t('auth.register.title');
+    }
+
+    if (authForm.isRegistrationVerifyMode) {
+      return t('auth.register.verify.title');
     }
 
     if (authForm.isPasswordResetRequestMode) {
@@ -42,6 +47,10 @@ export function AuthScreen() {
       return t('auth.register.description');
     }
 
+    if (authForm.isRegistrationVerifyMode) {
+      return t('auth.register.verify.description');
+    }
+
     if (authForm.isPasswordResetRequestMode) {
       return t('auth.passwordReset.request.description');
     }
@@ -59,6 +68,10 @@ export function AuthScreen() {
   const submitLabel = (() => {
     if (authForm.isRegisterMode) {
       return t('auth.register.submit');
+    }
+
+    if (authForm.isRegistrationVerifyMode) {
+      return t('auth.register.verify.submit');
     }
 
     if (authForm.isPasswordResetRequestMode) {
@@ -107,6 +120,7 @@ export function AuthScreen() {
             isPasswordVisible={authForm.isPasswordVisible}
             isPrimaryAuthMode={isPrimaryAuthMode}
             isRegisterMode={authForm.isRegisterMode}
+            isRegistrationVerifyMode={authForm.isRegistrationVerifyMode}
             isResendDisabled={authForm.isSubmitting}
             isSubmitDisabled={shouldDisableSubmit}
             submitLabel={submitLabel}
@@ -121,6 +135,7 @@ export function AuthScreen() {
               passwordShow: t('auth.form.password.show'),
               resendCode: t('auth.passwordReset.resend'),
               resetCode: t('auth.form.resetCode'),
+              emailVerificationCode: t('auth.form.emailVerificationCode'),
               countdownPrefix: t('auth.passwordReset.countdownPrefix'),
               countdownSuffix: t('auth.passwordReset.countdownSuffix')
             }}

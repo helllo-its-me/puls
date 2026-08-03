@@ -1,0 +1,1 @@
+ALTER TABLE "refresh_sessions" ADD COLUMN "auth_version" integer DEFAULT 0 NOT NULL;

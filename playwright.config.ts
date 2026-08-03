@@ -1,12 +1,22 @@
 import { defineConfig, devices } from '@playwright/test';
 
+import {
+  e2eAuthTokenSecret,
+  e2eDatabaseName,
+  e2eDatabaseUrl
+} from './tests/e2e/e2e-auth.config';
+
 const apiPort = 3100;
 const apiBaseUrl = `http://127.0.0.1:${apiPort}/api/v1`;
 const webPort = 19007;
 const webUrl = `http://127.0.0.1:${webPort}`;
 
+process.env.PULS_E2E_DATABASE_NAME = e2eDatabaseName;
+process.env.DATABASE_URL = e2eDatabaseUrl;
+
 export default defineConfig({
   testDir: './tests/e2e',
+  globalTeardown: './tests/e2e/e2e-global-teardown.ts',
   fullyParallel: true,
   retries: 0,
   reporter: [
@@ -21,7 +31,7 @@ export default defineConfig({
   webServer: [
     {
       command:
-        `pnpm db:up && until docker compose exec -T postgres pg_isready -U postgres -d health_app; do sleep 1; done && pnpm db:migrate && pnpm db:seed && AUTH_TOKEN_SECRET=e2e-auth-secret PORT=${apiPort} pnpm --filter @health/api dev`,
+        `pnpm db:up && until docker compose exec -T postgres pg_isready -U postgres -d postgres; do sleep 1; done && docker compose exec -T postgres dropdb --if-exists --force -U postgres ${e2eDatabaseName} && docker compose exec -T postgres createdb -U postgres ${e2eDatabaseName} && DATABASE_URL=${e2eDatabaseUrl} pnpm db:migrate && DATABASE_URL=${e2eDatabaseUrl} pnpm db:seed && NODE_ENV=test DATABASE_URL=${e2eDatabaseUrl} AUTH_TOKEN_SECRET=${e2eAuthTokenSecret} REGISTRATION_MIN_RESPONSE_MS=0 PASSWORD_RESET_MIN_RESPONSE_MS=0 WEB_APP_ORIGINS=${webUrl} PORT=${apiPort} pnpm --filter @health/api dev`,
       url: `${apiBaseUrl}/health`,
       reuseExistingServer: false,
       timeout: 120_000

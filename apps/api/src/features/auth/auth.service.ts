@@ -1,124 +1,139 @@
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 
 import {
   refreshSessionTtlSeconds,
   type AuthResponse,
-  type LoginRequest,
-  type RefreshTokenRequest,
-  type RegisterRequest
+  type LoginRequest
 } from '@health/shared';
 
 import { createRefreshTokenValue, hashRefreshToken } from './auth.refresh-session.js';
 import { createAccessToken } from './auth.token.js';
-import { hashPassword, verifyPassword } from './auth.password.js';
+import type { AuthSessionUser } from './auth.domain.js';
+import {
+  InvalidCredentialsError,
+  InvalidRefreshSessionError
+} from './auth.errors.js';
+import { hashPassword, needsPasswordRehash, verifyPassword } from './auth.password.js';
+import {
+  clearAuthAccountAttempts,
+  consumeAuthAttempt,
+  releaseAuthNetworkAttempt
+} from './auth.rate-limit.js';
 import {
   createRefreshSession,
-  createUserWithProfile,
-  getActiveRefreshSessionByTokenHash,
   getUserCredentialsByEmail,
-  revokeRefreshSession
+  revokeRefreshSessionFamilyByTokenHash,
+  rotateRefreshSession,
+  updateUserPasswordHashIfCurrent
 } from './auth.repository.js';
 
 const millisecondsPerSecond = 1000;
 const refreshSessionTtlMs = refreshSessionTtlSeconds * millisecondsPerSecond;
+const fallbackPasswordBytes = 32;
+const fallbackPasswordHashPromise = hashPassword(
+  randomBytes(fallbackPasswordBytes).toString('base64url')
+);
 
-async function toAuthResponse(
-  user: { id: string; email: string },
+type RefreshTokenInput = {
+  refreshToken: string;
+};
+
+type AuthSessionResponse = Omit<AuthResponse, 'refreshToken'> & {
+  refreshToken: string;
+};
+
+function getFallbackPasswordHash(): Promise<string> {
+  return fallbackPasswordHashPromise;
+}
+
+function buildAuthResponse(user: AuthSessionUser, refreshToken: string): AuthSessionResponse {
+  return {
+    accessToken: createAccessToken({
+      id: user.id,
+      authVersion: user.authVersion
+    }),
+    refreshToken,
+    user: {
+      id: user.id,
+      email: user.email
+    }
+  };
+}
+
+async function createAuthSession(
+  user: AuthSessionUser,
   now: Date
-): Promise<AuthResponse> {
+): Promise<AuthSessionResponse> {
   const refreshToken = createRefreshTokenValue();
+  const sessionId = randomUUID();
 
   await createRefreshSession({
-    id: randomUUID(),
+    id: sessionId,
+    familyId: sessionId,
     userId: user.id,
+    authVersion: user.authVersion,
     tokenHash: hashRefreshToken(refreshToken),
     expiresAt: new Date(now.getTime() + refreshSessionTtlMs),
     createdAt: now
   });
 
-  return {
-    accessToken: createAccessToken(user),
-    refreshToken,
-    user
-  };
+  return buildAuthResponse(user, refreshToken);
 }
 
-export async function registerUser(input: RegisterRequest): Promise<AuthResponse> {
-  const existingUser = await getUserCredentialsByEmail(input.email);
-
-  if (existingUser) {
-    throw new Error('Email is already registered');
-  }
-
-  const now = new Date();
-  const user = await createUserWithProfile({
-    userId: randomUUID(),
-    profileId: randomUUID(),
-    email: input.email,
-    passwordHash: await hashPassword(input.password),
-    firstName: input.firstName,
-    lastName: input.lastName,
-    createdAt: now
-  });
-
-  return toAuthResponse(user, now);
-}
-
-export async function loginUser(input: LoginRequest): Promise<AuthResponse> {
+export async function loginUser(
+  input: LoginRequest,
+  clientAddress: string
+): Promise<AuthSessionResponse> {
+  await consumeAuthAttempt('login', 'network', clientAddress);
   const user = await getUserCredentialsByEmail(input.email);
+  const passwordHash = user?.passwordHash ?? await getFallbackPasswordHash();
+  const passwordMatches = await verifyPassword(input.password, passwordHash);
 
-  if (!user?.passwordHash) {
-    throw new Error('Invalid email or password');
+  if (!user?.passwordHash || !passwordMatches) {
+    await consumeAuthAttempt('login', 'account', input.email);
+    throw new InvalidCredentialsError();
   }
 
-  const passwordMatches = await verifyPassword(input.password, user.passwordHash);
+  await clearAuthAccountAttempts('login', input.email);
+  await releaseAuthNetworkAttempt('login', clientAddress);
 
-  if (!passwordMatches) {
-    throw new Error('Invalid email or password');
+  if (needsPasswordRehash(user.passwordHash)) {
+    await updateUserPasswordHashIfCurrent(
+      user.id,
+      user.passwordHash,
+      await hashPassword(input.password)
+    );
   }
 
-  return toAuthResponse(
-    {
-      id: user.id,
-      email: user.email
-    },
-    new Date()
-  );
+  return createAuthSession(user, new Date());
 }
 
 export async function refreshAuthSession(
-  input: RefreshTokenRequest,
+  input: RefreshTokenInput,
   now: Date = new Date()
-): Promise<AuthResponse> {
-  const refreshSession = await getActiveRefreshSessionByTokenHash(
+): Promise<AuthSessionResponse> {
+  const refreshToken = createRefreshTokenValue();
+  const user = await rotateRefreshSession(
     hashRefreshToken(input.refreshToken),
-    now
-  );
-
-  if (!refreshSession) {
-    throw new Error('Invalid or expired refresh session');
-  }
-
-  await revokeRefreshSession(refreshSession.id, now);
-
-  return toAuthResponse(
     {
-      id: refreshSession.userId,
-      email: refreshSession.email
+      id: randomUUID(),
+      tokenHash: hashRefreshToken(refreshToken),
+      expiresAt: new Date(now.getTime() + refreshSessionTtlMs),
+      createdAt: now
     },
     now
   );
+
+  if (!user) {
+    throw new InvalidRefreshSessionError();
+  }
+
+  return buildAuthResponse(user, refreshToken);
 }
 
-export async function logoutUser(input: RefreshTokenRequest, now: Date = new Date()): Promise<void> {
-  const refreshSession = await getActiveRefreshSessionByTokenHash(
+export async function logoutUser(input: RefreshTokenInput, now: Date = new Date()): Promise<void> {
+  await revokeRefreshSessionFamilyByTokenHash(
     hashRefreshToken(input.refreshToken),
     now
   );
-
-  if (!refreshSession) {
-    return;
-  }
-
-  await revokeRefreshSession(refreshSession.id, now);
 }

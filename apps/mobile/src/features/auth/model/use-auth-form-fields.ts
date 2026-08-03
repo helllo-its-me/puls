@@ -7,6 +7,7 @@ export type AuthFormFieldSetters = {
   setPassword: (value: string) => void;
   setPasswordConfirmation: (value: string) => void;
   setResetCode: (value: string) => void;
+  setEmailVerificationCode: (value: string) => void;
   setFirstName: (value: string) => void;
   setLastName: (value: string) => void;
 };
@@ -14,9 +15,12 @@ export type AuthFormFieldSetters = {
 type UseAuthFormFieldsResult = {
   values: AuthFormValues;
   setters: AuthFormFieldSetters;
+  setRegistrationToken: (value: string) => void;
   setPasswordResetToken: (value: string) => void;
   clearPasswordResetFields: () => void;
   clearPasswordResetToken: () => void;
+  clearEmailVerificationCode: () => void;
+  clearRegistrationVerification: () => void;
 };
 
 export function useAuthFormFields(): UseAuthFormFieldsResult {
@@ -24,6 +28,8 @@ export function useAuthFormFields(): UseAuthFormFieldsResult {
   const [password, setPassword] = useState('');
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
   const [resetCode, setResetCode] = useState('');
+  const [emailVerificationCode, setEmailVerificationCode] = useState('');
+  const [registrationToken, setRegistrationToken] = useState('');
   const [passwordResetToken, setPasswordResetToken] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -41,6 +47,8 @@ export function useAuthFormFields(): UseAuthFormFieldsResult {
       password,
       passwordConfirmation,
       resetCode,
+      emailVerificationCode,
+      registrationToken,
       passwordResetToken,
       firstName,
       lastName
@@ -50,6 +58,7 @@ export function useAuthFormFields(): UseAuthFormFieldsResult {
       setPassword,
       setPasswordConfirmation,
       setResetCode,
+      setEmailVerificationCode,
       setFirstName,
       setLastName
     },
@@ -57,6 +66,16 @@ export function useAuthFormFields(): UseAuthFormFieldsResult {
     clearPasswordResetFields,
     clearPasswordResetToken: () => {
       setPasswordResetToken('');
+    },
+    clearEmailVerificationCode: () => {
+      setEmailVerificationCode('');
+    },
+    clearRegistrationVerification: () => {
+      setEmailVerificationCode('');
+      setRegistrationToken('');
+    },
+    setRegistrationToken: (value: string) => {
+      setRegistrationToken(value);
     }
   };
 }

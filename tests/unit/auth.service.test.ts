@@ -1,173 +1,190 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const createUserWithProfileMock = vi.fn();
 const createRefreshSessionMock = vi.fn();
 const getUserCredentialsByEmailMock = vi.fn();
-const getActiveRefreshSessionByTokenHashMock = vi.fn();
-const revokeRefreshSessionMock = vi.fn();
+const revokeRefreshSessionFamilyByTokenHashMock = vi.fn();
+const rotateRefreshSessionMock = vi.fn();
+const updateUserPasswordHashIfCurrentMock = vi.fn();
+const consumeAuthAttemptMock = vi.fn();
+const clearAuthAccountAttemptsMock = vi.fn();
+const releaseAuthNetworkAttemptMock = vi.fn();
 
-vi.mock("../../apps/api/src/features/auth/auth.repository.js", () => ({
+vi.mock('../../apps/api/src/features/auth/auth.repository.js', () => ({
   createRefreshSession: createRefreshSessionMock,
-  createUserWithProfile: createUserWithProfileMock,
-  getActiveRefreshSessionByTokenHash: getActiveRefreshSessionByTokenHashMock,
   getUserCredentialsByEmail: getUserCredentialsByEmailMock,
-  revokeRefreshSession: revokeRefreshSessionMock,
+  revokeRefreshSessionFamilyByTokenHash: revokeRefreshSessionFamilyByTokenHashMock,
+  rotateRefreshSession: rotateRefreshSessionMock,
+  updateUserPasswordHashIfCurrent: updateUserPasswordHashIfCurrentMock
 }));
 
-describe("auth service", () => {
+vi.mock('../../apps/api/src/features/auth/auth.rate-limit.js', () => ({
+  clearAuthAccountAttempts: clearAuthAccountAttemptsMock,
+  consumeAuthAttempt: consumeAuthAttemptMock,
+  releaseAuthNetworkAttempt: releaseAuthNetworkAttemptMock
+}));
+
+describe('auth service', () => {
   beforeEach(() => {
-    process.env.AUTH_TOKEN_SECRET = "unit-test-auth-secret";
+    process.env.AUTH_TOKEN_SECRET = 'unit-test-auth-token-secret-value-01';
     createRefreshSessionMock.mockReset();
-    createUserWithProfileMock.mockReset();
-    getActiveRefreshSessionByTokenHashMock.mockReset();
     getUserCredentialsByEmailMock.mockReset();
-    revokeRefreshSessionMock.mockReset();
+    revokeRefreshSessionFamilyByTokenHashMock.mockReset();
+    rotateRefreshSessionMock.mockReset();
+    updateUserPasswordHashIfCurrentMock.mockReset();
+    consumeAuthAttemptMock.mockReset();
+    clearAuthAccountAttemptsMock.mockReset();
+    releaseAuthNetworkAttemptMock.mockReset();
+    consumeAuthAttemptMock.mockResolvedValue(undefined);
+    clearAuthAccountAttemptsMock.mockResolvedValue(undefined);
+    releaseAuthNetworkAttemptMock.mockResolvedValue(undefined);
   });
 
-  it("registers a user with a profile and returns a bearer token payload", async () => {
-    createUserWithProfileMock.mockResolvedValue({
-      id: "user-created",
-      email: "new@example.com",
-    });
-
-    const { registerUser } =
-      await import("../../apps/api/src/features/auth/auth.service.js");
-    const result = await registerUser({
-      email: "new@example.com",
-      password: "strong-password",
-      firstName: "New",
-      lastName: "Member",
-    });
-
-    expect(result.user).toEqual({
-      id: "user-created",
-      email: "new@example.com",
-    });
-    expect(result.accessToken.length).toBeGreaterThan(20);
-    expect(result.refreshToken.length).toBeGreaterThan(20);
-    expect(createUserWithProfileMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        email: "new@example.com",
-        firstName: "New",
-        lastName: "Member",
-      }),
+  it('logs in an existing user with a valid password', async () => {
+    const { hashPassword } = await import(
+      '../../apps/api/src/features/auth/auth.password.js'
     );
-    expect(createUserWithProfileMock.mock.calls[0]?.[0]?.passwordHash).not.toBe(
-      "strong-password",
+    const { loginUser } = await import(
+      '../../apps/api/src/features/auth/auth.service.js'
     );
-    expect(createRefreshSessionMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        userId: "user-created",
-      }),
-    );
-  });
-
-  it("logs in an existing user with a valid password", async () => {
-    const { hashPassword } =
-      await import("../../apps/api/src/features/auth/auth.password.js");
-    const { loginUser } =
-      await import("../../apps/api/src/features/auth/auth.service.js");
-    const passwordHash = await hashPassword("strong-password");
+    const passwordHash = await hashPassword('strong-password');
 
     getUserCredentialsByEmailMock.mockResolvedValue({
-      id: "user-primary",
-      email: "tanya@example.com",
-      passwordHash,
+      id: 'user-primary',
+      email: 'tanya@example.com',
+      authVersion: 2,
+      passwordHash
     });
 
-    const result = await loginUser({
-      email: "tanya@example.com",
-      password: "strong-password",
-    });
+    const result = await loginUser(
+      {
+        email: 'tanya@example.com',
+        password: 'strong-password'
+      },
+      '192.0.2.1'
+    );
 
     expect(result.user).toEqual({
-      id: "user-primary",
-      email: "tanya@example.com",
+      id: 'user-primary',
+      email: 'tanya@example.com'
     });
-    expect(result.accessToken.length).toBeGreaterThan(20);
-    expect(result.refreshToken.length).toBeGreaterThan(20);
+    expect(consumeAuthAttemptMock).toHaveBeenCalledWith(
+      'login',
+      'network',
+      '192.0.2.1'
+    );
+    expect(clearAuthAccountAttemptsMock).toHaveBeenCalledWith(
+      'login',
+      'tanya@example.com'
+    );
+    expect(releaseAuthNetworkAttemptMock).toHaveBeenCalledWith(
+      'login',
+      '192.0.2.1'
+    );
+    expect(updateUserPasswordHashIfCurrentMock).not.toHaveBeenCalled();
     expect(createRefreshSessionMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        userId: "user-primary",
-      }),
+        authVersion: 2,
+        familyId: expect.stringMatching(/\S+/),
+        userId: 'user-primary'
+      })
     );
+    const createdSession = createRefreshSessionMock.mock.calls[0]?.[0];
+
+    expect(createdSession?.familyId).toBe(createdSession?.id);
   });
 
-  it("rejects login when credentials are invalid", async () => {
+  it('rejects a throttled network before loading credentials or running scrypt', async () => {
+    consumeAuthAttemptMock.mockRejectedValue(new Error('network throttled'));
+    const { loginUser } = await import(
+      '../../apps/api/src/features/auth/auth.service.js'
+    );
+
+    await expect(loginUser({
+      email: 'user@example.com',
+      password: 'strong-password'
+    }, '192.0.2.1')).rejects.toThrow('network throttled');
+    expect(getUserCredentialsByEmailMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects login when credentials are invalid after doing password work', async () => {
     getUserCredentialsByEmailMock.mockResolvedValue(null);
 
-    const { loginUser } =
-      await import("../../apps/api/src/features/auth/auth.service.js");
+    const { loginUser } = await import(
+      '../../apps/api/src/features/auth/auth.service.js'
+    );
 
     await expect(
-      loginUser({
-        email: "missing@example.com",
-        password: "strong-password",
-      }),
-    ).rejects.toThrow("Invalid email or password");
+      loginUser(
+        {
+          email: 'missing@example.com',
+          password: 'strong-password'
+        },
+        '192.0.2.1'
+      )
+    ).rejects.toThrow('Invalid email or password');
+    expect(consumeAuthAttemptMock).toHaveBeenCalledWith(
+      'login',
+      'network',
+      '192.0.2.1'
+    );
+    expect(consumeAuthAttemptMock).toHaveBeenCalledWith(
+      'login',
+      'account',
+      'missing@example.com'
+    );
+    expect(clearAuthAccountAttemptsMock).not.toHaveBeenCalled();
   });
 
-  it("rotates a valid refresh session", async () => {
-    getActiveRefreshSessionByTokenHashMock.mockResolvedValue({
-      id: "refresh-session-current",
-      userId: "user-primary",
-      email: "tanya@example.com",
-      expiresAt: new Date("2026-06-06T10:00:00.000Z"),
+  it('atomically rotates a valid refresh session', async () => {
+    rotateRefreshSessionMock.mockResolvedValue({
+      id: 'user-primary',
+      email: 'tanya@example.com',
+      authVersion: 2
     });
 
-    const { refreshAuthSession } =
-      await import("../../apps/api/src/features/auth/auth.service.js");
+    const { refreshAuthSession } = await import(
+      '../../apps/api/src/features/auth/auth.service.js'
+    );
     const result = await refreshAuthSession({
-      refreshToken: "current-refresh-token",
+      refreshToken: 'current-refresh-token'
     });
 
     expect(result.user).toEqual({
-      id: "user-primary",
-      email: "tanya@example.com",
+      id: 'user-primary',
+      email: 'tanya@example.com'
     });
-    expect(result.accessToken.length).toBeGreaterThan(20);
-    expect(result.refreshToken.length).toBeGreaterThan(20);
-    const revokedAt = revokeRefreshSessionMock.mock.calls[0]?.[1];
-
-    expect(revokedAt).toBeInstanceOf(Date);
-    expect(revokeRefreshSessionMock).toHaveBeenCalledWith("refresh-session-current", revokedAt);
-    expect(createRefreshSessionMock).toHaveBeenCalledWith(
+    expect(rotateRefreshSessionMock).toHaveBeenCalledWith(
+      expect.stringMatching(/\S+/),
       expect.objectContaining({
-        userId: "user-primary",
+        id: expect.stringMatching(/\S+/),
+        tokenHash: expect.stringMatching(/\S+/)
       }),
+      expect.any(Date)
     );
+    expect(createRefreshSessionMock).not.toHaveBeenCalled();
   });
 
-  it("rejects missing refresh sessions", async () => {
-    getActiveRefreshSessionByTokenHashMock.mockResolvedValue(null);
+  it('rejects missing refresh sessions', async () => {
+    rotateRefreshSessionMock.mockResolvedValue(null);
 
-    const { refreshAuthSession } =
-      await import("../../apps/api/src/features/auth/auth.service.js");
+    const { refreshAuthSession } = await import(
+      '../../apps/api/src/features/auth/auth.service.js'
+    );
 
     await expect(
-      refreshAuthSession({
-        refreshToken: "missing-refresh-token",
-      }),
-    ).rejects.toThrow("Invalid or expired refresh session");
+      refreshAuthSession({ refreshToken: 'missing-refresh-token' })
+    ).rejects.toThrow('Invalid or expired refresh session');
   });
 
-  it("revokes a refresh session on logout", async () => {
-    getActiveRefreshSessionByTokenHashMock.mockResolvedValue({
-      id: "refresh-session-current",
-      userId: "user-primary",
-      email: "tanya@example.com",
-      expiresAt: new Date("2026-06-06T10:00:00.000Z"),
-    });
+  it('revokes a refresh session on logout', async () => {
+    const { logoutUser } = await import(
+      '../../apps/api/src/features/auth/auth.service.js'
+    );
+    await logoutUser({ refreshToken: 'current-refresh-token' });
 
-    const { logoutUser } =
-      await import("../../apps/api/src/features/auth/auth.service.js");
-    await logoutUser({
-      refreshToken: "current-refresh-token",
-    });
-
-    const revokedAt = revokeRefreshSessionMock.mock.calls[0]?.[1];
-
-    expect(revokedAt).toBeInstanceOf(Date);
-    expect(revokeRefreshSessionMock).toHaveBeenCalledWith("refresh-session-current", revokedAt);
+    expect(revokeRefreshSessionFamilyByTokenHashMock).toHaveBeenCalledWith(
+      expect.stringMatching(/\S+/),
+      expect.any(Date)
+    );
   });
 });

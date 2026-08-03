@@ -38,6 +38,14 @@ export function getRegistrationRequiredValidationError(
   return null;
 }
 
+export function getRegistrationVerifyRequiredValidationError(
+  values: AuthFormValues
+): TranslationKey | null {
+  return values.emailVerificationCode.trim()
+    ? null
+    : 'auth.error.emailVerificationCodeRequired';
+}
+
 export function getPasswordResetRequestRequiredValidationError(
   values: AuthFormValues
 ): TranslationKey | null {

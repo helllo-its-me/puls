@@ -16,6 +16,7 @@ type AuthFormCardText = {
   passwordShow: string;
   resendCode: string;
   resetCode: string;
+  emailVerificationCode: string;
   countdownPrefix: string;
   countdownSuffix: string;
 };
@@ -27,6 +28,7 @@ type AuthFormCardValues = {
   password: string;
   passwordConfirmation: string;
   resetCode: string;
+  emailVerificationCode: string;
 };
 
 type AuthFormCardSetters = {
@@ -36,6 +38,7 @@ type AuthFormCardSetters = {
   setPassword: (value: string) => void;
   setPasswordConfirmation: (value: string) => void;
   setResetCode: (value: string) => void;
+  setEmailVerificationCode: (value: string) => void;
 };
 
 type AuthFormCardProps = {
@@ -48,6 +51,7 @@ type AuthFormCardProps = {
   isPasswordVisible: boolean;
   isPrimaryAuthMode: boolean;
   isRegisterMode: boolean;
+  isRegistrationVerifyMode: boolean;
   isResendDisabled: boolean;
   isSubmitDisabled: boolean;
   submitLabel: string;
@@ -70,6 +74,7 @@ export function AuthFormCard({
   isPasswordVisible,
   isPrimaryAuthMode,
   isRegisterMode,
+  isRegistrationVerifyMode,
   isResendDisabled,
   isSubmitDisabled,
   submitLabel,
@@ -99,7 +104,8 @@ export function AuthFormCard({
           />
         </>
       ) : null}
-      {!isPasswordResetVerifyMode && !isPasswordResetCompleteMode ? (
+      {!isPasswordResetVerifyMode && !isPasswordResetCompleteMode
+        && !isRegistrationVerifyMode ? (
         <AuthTextField
           keyboardType="email-address"
           label={text.email}
@@ -115,7 +121,16 @@ export function AuthFormCard({
           onChangeText={setters.setResetCode}
         />
       ) : null}
-      {!isPasswordResetRequestMode && !isPasswordResetVerifyMode ? (
+      {isRegistrationVerifyMode ? (
+        <AuthTextField
+          keyboardType="number-pad"
+          label={text.emailVerificationCode}
+          value={values.emailVerificationCode}
+          onChangeText={setters.setEmailVerificationCode}
+        />
+      ) : null}
+      {!isPasswordResetRequestMode && !isPasswordResetVerifyMode
+        && !isRegistrationVerifyMode ? (
         <AuthTextField
           actionLabel={isPasswordVisible ? text.passwordHide : text.passwordShow}
           label={text.password}

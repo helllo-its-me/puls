@@ -3,7 +3,8 @@ import {
   passwordResetCompleteRequestSchema,
   passwordResetRequestSchema,
   passwordResetVerifyRequestSchema,
-  registerRequestSchema
+  registerRequestSchema,
+  registerVerifyRequestSchema
 } from '@health/shared';
 
 import { authModes, type AuthMode } from './auth-modes';
@@ -14,6 +15,7 @@ import {
   getPasswordResetRequestRequiredValidationError,
   getPasswordResetVerifyRequiredValidationError,
   getRegistrationRequiredValidationError,
+  getRegistrationVerifyRequiredValidationError,
   getSchemaValidationError
 } from './auth-form-validation';
 
@@ -42,6 +44,36 @@ export function buildAuthSubmitResult(
       return {
         ok: false,
         errorKey: getSchemaValidationError(parsedPayload.error.issues.flatMap((issue) => issue.path))
+      };
+    }
+
+    return {
+      ok: true,
+      mode,
+      payload: parsedPayload.data
+    };
+  }
+
+  if (mode === authModes.verifyRegistration) {
+    const requiredValidationError = getRegistrationVerifyRequiredValidationError(values);
+
+    if (requiredValidationError) {
+      return {
+        ok: false,
+        errorKey: requiredValidationError
+      };
+    }
+
+    const parsedPayload = registerVerifyRequestSchema.safeParse({
+      email: values.email,
+      code: values.emailVerificationCode,
+      registrationToken: values.registrationToken
+    });
+
+    if (!parsedPayload.success) {
+      return {
+        ok: false,
+        errorKey: 'auth.error.invalidEmailVerificationCode'
       };
     }
 

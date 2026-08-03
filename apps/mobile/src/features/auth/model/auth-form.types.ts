@@ -3,7 +3,8 @@ import type {
   PasswordResetCompleteRequest,
   PasswordResetRequest,
   PasswordResetVerifyRequest,
-  RegisterRequest
+  RegisterRequest,
+  RegisterVerifyRequest
 } from '@health/shared';
 
 import type { TranslationKey } from '@/i18n/dictionaries';
@@ -15,6 +16,8 @@ export type AuthFormValues = {
   password: string;
   passwordConfirmation: string;
   resetCode: string;
+  emailVerificationCode: string;
+  registrationToken: string;
   passwordResetToken: string;
   firstName: string;
   lastName: string;
@@ -30,6 +33,12 @@ type RegisterSubmitResult = {
   ok: true;
   mode: typeof authModes.register;
   payload: RegisterRequest;
+};
+
+type RegisterVerifySubmitResult = {
+  ok: true;
+  mode: typeof authModes.verifyRegistration;
+  payload: RegisterVerifyRequest;
 };
 
 type PasswordResetRequestSubmitResult = {
@@ -58,6 +67,7 @@ type AuthSubmitErrorResult = {
 export type AuthSubmitResult =
   | LoginSubmitResult
   | RegisterSubmitResult
+  | RegisterVerifySubmitResult
   | PasswordResetRequestSubmitResult
   | PasswordResetVerifySubmitResult
   | PasswordResetCompleteSubmitResult
